@@ -162,7 +162,7 @@ export default function HomePage() {
             {/* 카테고리 필터 */}
             <div className="bg-white border-b border-gray-200 px-4 py-2 relative">
               <div className="flex gap-1 items-center flex-wrap justify-between">
-                <div className="flex gap-1 items-center flex-wrap min-w-0 flex-1">
+                <div className="flex gap-1 items-center flex-wrap min-w-0 flex-1 justify-center">
                   <button
                     onClick={() => handleCategoryChange('전체')}
                     className={`h-8 px-2 py-1 rounded text-xs font-semibold border transition-colors whitespace-nowrap ${
@@ -393,8 +393,8 @@ export default function HomePage() {
             <div className="w-full flex justify-end items-center px-0 py-2 bg-white border-b border-gray-100">
               <a
                 href="/board/write"
-                className="px-3 py-1 rounded text-xs font-semibold border border-gray-300 bg-white text-[#333] hover:bg-gray-100 transition-colors"
-                style={{minWidth:'64px',textAlign:'center'}}>
+                className="px-3 py-1 rounded text-xs font-semibold border border-gray-300 text-white hover:bg-gray-800 transition-colors"
+                style={{minWidth:'64px',textAlign:'center',backgroundColor:'#333333'}}>
                 글쓰기
               </a>
             </div>

@@ -6,8 +6,8 @@ import Header from "@/components/Header";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "개인회생파산 커뮤니티",
-  description: "부채 문제로 고민하는 분들을 위한 익명 커뮤니티",
+  title: "희망톡톡",
+  description: "신용회복, 개인회생, 재도전 정보를 나누는 커뮤니티"
 };
 
 export default function RootLayout({
