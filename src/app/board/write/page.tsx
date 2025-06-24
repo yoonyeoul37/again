@@ -164,7 +164,7 @@ export default function WritePage() {
                   <option value="인가결정">[인가결정]</option>
                   <option value="셀프신청">[셀프신청]</option>
                   <option value="개인신청">[개인신청]</option>
-                  <option value="취업">[취업]</option>
+                  <option value="취업">[취업관련]</option>
                 </select>
               </div>
 
