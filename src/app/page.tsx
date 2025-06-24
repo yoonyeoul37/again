@@ -72,8 +72,8 @@ export default function HomePage() {
       return posts.filter(post => post.category === '워크아웃');
     } else if (selectedCategory === '신용회복위원회') {
       return posts.filter(post => post.category === '신용회복위원회');
-    } else if (selectedCategory === '대출') {
-      return posts.filter(post => post.category === '대출');
+    } else if (selectedCategory === '대출관련') {
+      return posts.filter(post => post.category === '대출관련');
     } else if (selectedCategory === '신용카드') {
       return posts.filter(post => post.category === '신용카드');
     } else if (selectedCategory === '신용점수') {
@@ -234,9 +234,9 @@ export default function HomePage() {
                     신용회복위원회
                   </button>
                   <button
-                    onClick={() => handleCategoryChange('대출')}
+                    onClick={() => handleCategoryChange('대출관련')}
                     className={`h-8 px-2 py-1 rounded text-xs font-semibold border transition-colors whitespace-nowrap ${
-                      selectedCategory === '대출' 
+                      selectedCategory === '대출관련' 
                         ? 'bg-blue-600 text-white border-blue-600' 
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
                     }`}
