@@ -26,12 +26,14 @@ export interface PostFormData {
   content: string;
   nickname: string;
   category: '개인회생' | '법인회생' | '법인파산' | '워크아웃' | '신용점수' | '회생절차' | '상환계획' | '법무사상담' | '회생비용' | '파산비용' | '재산관리' | '면책결정' | '신용회복' | '인가결정' | '셀프신청' | '개인신청' | '취업';
+  password: string;
 }
 
 export interface CommentFormData {
   content: string;
   nickname: string;
   parentId: string | null;
+  password: string;
 }
 
 export interface Ad {

@@ -12,7 +12,8 @@ export default function WritePage() {
     title: '',
     content: '',
     nickname: '',
-    category: '개인회생'
+    category: '개인회생',
+    password: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [images, setImages] = useState<File[]>([]);
@@ -127,7 +128,8 @@ export default function WritePage() {
           category: formData.category,
           created_at: new Date().toISOString(),
           comment_count: 0,
-          images: imageUrls.join(',')
+          images: imageUrls.join(','),
+          password: formData.password
         }
       ]);
       
@@ -230,6 +232,26 @@ export default function WritePage() {
                 maxLength={8}
               />
               <p className="text-xs text-gray-400 mt-1">한글 8자 또는 영어 8자까지 입력할 수 있습니다</p>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                비밀번호 <span className="text-blue-500">*</span>
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="수정/삭제용 비밀번호"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 bg-gray-50"
+                required
+                minLength={4}
+                maxLength={20}
+              />
+              <p className="text-xs text-gray-400 mt-1">* 글 수정/삭제 시 사용할 비밀번호 (4~20자)</p>
             </div>
 
             {/* Content */}

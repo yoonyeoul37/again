@@ -46,7 +46,7 @@ export default function PostDetailPage() {
 
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [commentForm, setCommentForm] = useState({ content: '', nickname: '' });
+  const [commentForm, setCommentForm] = useState({ content: '', nickname: '', password: '' });
   const [replyForm, setReplyForm] = useState<{ [key: string]: { content: string; nickname: string } }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -58,6 +58,17 @@ export default function PostDetailPage() {
   const [error, setError] = useState<string | null>(null);
   // 글 순번 계산용
   const [postNumber, setPostNumber] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    content: '',
+    nickname: '',
+    category: '',
+    images: '',
+  });
+  const [pwModal, setPwModal] = useState<{mode: 'edit' | 'delete' | null, open: boolean}>({mode: null, open: false});
+  const [pwInput, setPwInput] = useState('');
+  const [pwError, setPwError] = useState('');
 
   useEffect(() => {
     async function fetchPost() {
@@ -132,7 +143,7 @@ export default function PostDetailPage() {
   // 댓글 작성 (DB 연동)
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentForm.content.trim() || !commentForm.nickname.trim()) {
+    if (!commentForm.content.trim() || !commentForm.nickname.trim() || !commentForm.password.trim()) {
       setShowCommentToast(true);
       setTimeout(() => setShowCommentToast(false), 2000);
       return;
@@ -145,6 +156,7 @@ export default function PostDetailPage() {
           post_id: postId,
           content: commentForm.content,
           nickname: commentForm.nickname,
+          password: commentForm.password,
         }
       ]);
       if (!error) {
@@ -160,7 +172,7 @@ export default function PostDetailPage() {
           .eq('post_id', postId)
           .order('created_at', { ascending: false });
         setComments(newComments || []);
-        setCommentForm({ content: '', nickname: '' });
+        setCommentForm({ content: '', nickname: '', password: '' });
         setReplyTo(null);
         setShowCommentToast(true);
         setTimeout(() => setShowCommentToast(false), 2000);
@@ -478,29 +490,142 @@ export default function PostDetailPage() {
                   <span className="flex items-center gap-1"><svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V10a2 2 0 012-2h2m4-4v4m0 0l-2-2m2 2l2-2" /></svg> {post?.comment_count ?? 0}</span>
                 </div>
               </div>
-              {/* 제목 */}
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{post?.title}</h1>
+              {/* 제목 + 수정/삭제 아이콘 */}
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2 flex-1">{post?.title}</h1>
+                <div className="flex gap-2 items-center ml-2">
+                  <button
+                    type="button"
+                    title="수정"
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-blue-600"
+                    onClick={() => { setPwModal({mode: 'edit', open: true}); setPwInput(''); setPwError(''); }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13h3l8-8a2.828 2.828 0 10-4-4l-8 8v3zm0 0v3h3" /></svg>
+                  </button>
+                  <button
+                    type="button"
+                    title="삭제"
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-red-500"
+                    onClick={() => { setPwModal({mode: 'delete', open: true}); setPwInput(''); setPwError(''); }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+                  </button>
+                </div>
+              </div>
               {/* 닉네임 */}
               <div className="text-gray-500 text-sm mb-6">{post?.nickname}</div>
               {/* 본문 */}
               <div className="text-gray-800 text-base whitespace-pre-line mb-8">
-                {post?.content}
-                {/* 이미지 표시 */}
-                {post?.images && post.images.length > 0 && (
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {post.images.split(',').map((imageUrl, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={imageUrl}
-                          alt={`게시글 이미지 ${index + 1}`}
-                          className="w-full h-auto rounded-lg border border-gray-200 shadow-sm"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
+                {isEditing ? (
+                  <form onSubmit={async e => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    const { error } = await supabase.from('posts').update({
+                      title: editForm.title,
+                      content: editForm.content,
+                      nickname: editForm.nickname,
+                      category: editForm.category,
+                      images: editForm.images,
+                    }).eq('id', postId);
+                    setIsSubmitting(false);
+                    if (!error) {
+                      alert('수정이 완료되었습니다.');
+                      setPost(post => post ? { ...post, ...editForm } : post);
+                      setIsEditing(false);
+                    } else {
+                      alert('수정 중 오류 발생: ' + error.message);
+                    }
+                  }} className="space-y-4">
+                    <input
+                      type="text"
+                      value={editForm.title}
+                      onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-lg font-bold"
+                      maxLength={100}
+                      required
+                    />
+                    <input
+                      type="text"
+                      value={editForm.nickname}
+                      onChange={e => setEditForm(f => ({ ...f, nickname: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      maxLength={8}
+                      required
+                    />
+                    <select
+                      value={editForm.category}
+                      onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      required
+                    >
+                      <option value="개인회생">개인회생</option>
+                      <option value="개인파산">개인파산</option>
+                      <option value="법인회생">법인회생</option>
+                      <option value="법인파산">법인파산</option>
+                      <option value="워크아웃">워크아웃</option>
+                      <option value="신용회복위원회">신용회복위원회</option>
+                      <option value="대출">대출관련</option>
+                      <option value="신용카드">신용카드</option>
+                      <option value="신용점수">신용점수</option>
+                      <option value="회생절차">회생절차</option>
+                      <option value="상환계획">상환계획</option>
+                      <option value="법무사상담">법무사상담</option>
+                      <option value="변호사상담">변호사상담</option>
+                      <option value="회생비용">회생비용</option>
+                      <option value="파산비용">파산비용</option>
+                      <option value="인가결정">인가결정</option>
+                      <option value="셀프신청">셀프신청</option>
+                      <option value="개인신청">개인신청</option>
+                      <option value="취업">취업관련</option>
+                    </select>
+                    <textarea
+                      value={editForm.content}
+                      onChange={e => setEditForm(f => ({ ...f, content: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-base"
+                      rows={8}
+                      maxLength={2000}
+                      required
+                    />
+                    {/* 이미지 수정은 추후 지원 */}
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-semibold transition-colors"
+                        onClick={() => setIsEditing(false)}
+                        disabled={isSubmitting}
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-semibold transition-colors"
+                        disabled={isSubmitting}
+                      >
+                        저장
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    {post?.content}
+                    {/* 이미지 표시 */}
+                    {post?.images && post.images.length > 0 && (
+                      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {post.images.split(',').map((imageUrl, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={imageUrl}
+                              alt={`게시글 이미지 ${index + 1}`}
+                              className="w-full h-auto rounded-lg border border-gray-200 shadow-sm"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 )}
               </div>
               {/* 힘내 버튼 등 기존 내용은 그대로 */}
@@ -544,8 +669,19 @@ export default function PostDetailPage() {
                         value={commentForm.nickname}
                         onChange={handleInputChange}
                         placeholder="닉네임"
-                        className="w-28 h-10 px-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-28 h-10 px-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         required
+                        maxLength={20}
+                      />
+                      <input
+                        type="password"
+                        name="password"
+                        value={commentForm.password}
+                        onChange={handleInputChange}
+                        placeholder="비밀번호(수정/삭제용)"
+                        className="w-32 h-10 px-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                        minLength={4}
                         maxLength={20}
                       />
                       <textarea
@@ -554,7 +690,7 @@ export default function PostDetailPage() {
                         onChange={handleInputChange}
                         placeholder="댓글을 입력하세요..."
                         rows={2}
-                        className="flex-1 h-10 px-2 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder-gray-400 leading-relaxed"
+                        className="flex-1 h-10 px-2 py-2 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder-gray-400 leading-relaxed"
                         required
                         maxLength={500}
                         style={{ minHeight: '2.5rem', maxHeight: '4.5rem' }}
@@ -634,6 +770,64 @@ export default function PostDetailPage() {
       </div>
       {showCommentToast && (
         <div className="mt-2 text-center text-sm text-green-600 font-semibold animate-fade-in">댓글이 작성되었습니다!</div>
+      )}
+      {/* 비밀번호 입력 모달 */}
+      {pwModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-xs mx-auto flex flex-col gap-3 animate-fade-in">
+            <div className="text-lg font-semibold text-gray-800 mb-2 text-center">
+              {pwModal.mode === 'edit' ? '게시글 수정' : '게시글 삭제'}<br />
+              <span className="text-xs text-gray-400">비밀번호를 입력하세요</span>
+            </div>
+            <input
+              type="password"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-200"
+              value={pwInput}
+              onChange={e => { setPwInput(e.target.value); setPwError(''); }}
+              onKeyDown={e => { if (e.key === 'Enter') { document.getElementById('pw-modal-confirm')?.click(); } }}
+              autoFocus
+              placeholder="비밀번호"
+            />
+            {pwError && <div className="text-xs text-red-500 text-center">{pwError}</div>}
+            <div className="flex gap-2 justify-end mt-2">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-semibold transition-colors"
+                onClick={() => setPwModal({mode: null, open: false})}
+              >취소</button>
+              <button
+                id="pw-modal-confirm"
+                className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-semibold transition-colors ${!pwInput ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!pwInput}
+                onClick={async () => {
+                  if (pwInput !== post?.password) {
+                    setPwError('비밀번호가 일치하지 않습니다.');
+                    return;
+                  }
+                  setPwError('');
+                  setPwModal({ ...pwModal, open: false });
+                  if (pwModal.mode === 'edit') {
+                    setEditForm({
+                      title: post.title,
+                      content: post.content,
+                      nickname: post.nickname,
+                      category: post.category,
+                      images: post.images || '',
+                    });
+                    setIsEditing(true);
+                  } else if (pwModal.mode === 'delete') {
+                    const { error } = await supabase.from('posts').delete().eq('id', postId);
+                    if (!error) {
+                      alert('게시글이 삭제되었습니다.');
+                      window.location.href = '/';
+                    } else {
+                      alert('삭제 중 오류 발생: ' + error.message);
+                    }
+                  }
+                }}
+              >확인</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
