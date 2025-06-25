@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { samplePosts } from "@/data/sampleData";
 import AdSlot from "@/components/AdSlot";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCamera, faComment } from '@fortawesome/free-solid-svg-icons';
+import { faCamera, faComment, faImage } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '@/lib/supabaseClient';
 
 // 샘플 공지/광고 데이터
@@ -408,7 +408,9 @@ export default function HomePage() {
                       <Link href={`/post/${post.id}`} className="truncate font-medium hover:text-blue-600 transition-colors text-xs text-gray-900 block max-w-full">
                         {post.title}
                         {post.images && post.images.length > 0 && (
-                          <span className="ml-1 text-gray-400 text-xs">📷</span>
+                          <span className="ml-1 text-gray-400 text-xs">
+                            <FontAwesomeIcon icon={faImage} />
+                          </span>
                         )}
                         {isNew(post.created_at) && <span className="ml-1 text-[8px] text-red-500 font-normal align-middle">NEW</span>}
                         {post.comment_count > 0 && (
@@ -446,7 +448,9 @@ export default function HomePage() {
                         <Link href={`/post/${post.id}`} className="truncate font-medium group-hover:text-blue-600 transition-colors text-xs text-gray-900 block max-w-full">
                           {post.title}
                           {post.images && post.images.length > 0 && (
-                            <span className="ml-1 text-gray-400 text-xs">📷</span>
+                            <span className="ml-1 text-gray-400 text-xs">
+                              <FontAwesomeIcon icon={faImage} />
+                            </span>
                           )}
                           {isNew(post.created_at) && <span className="ml-1 text-[8px] text-red-500 font-normal align-middle">NEW</span>}
                           {post.comment_count > 0 && (

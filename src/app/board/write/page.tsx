@@ -89,6 +89,36 @@ export default function WritePage() {
     setIsSubmitting(true);
 
     try {
+      // 이미지 업로드 처리
+      let imageUrls: string[] = [];
+      
+      if (images.length > 0) {
+        for (let i = 0; i < images.length; i++) {
+          const file = images[i];
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${i}.${fileExt}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('post-images')
+            .upload(fileName, file);
+          
+          if (uploadError) {
+            console.error('이미지 업로드 실패:', uploadError);
+            alert('이미지 업로드에 실패했습니다.');
+            setIsSubmitting(false);
+            return;
+          }
+          
+          // 공개 URL 생성
+          const { data: urlData } = supabase.storage
+            .from('post-images')
+            .getPublicUrl(fileName);
+          
+          imageUrls.push(urlData.publicUrl);
+        }
+      }
+
+      // 게시글 저장
       const { error, data } = await supabase.from('posts').insert([
         {
           title: formData.title,
@@ -97,11 +127,13 @@ export default function WritePage() {
           category: formData.category,
           created_at: new Date().toISOString(),
           comment_count: 0,
-          images: imagePreview.join(',')
+          images: imageUrls.join(',')
         }
       ]);
+      
       console.log('insert error:', error);
       console.log('insert data:', data);
+      
       if (error) {
         alert('글 저장 실패: ' + error.message);
         setIsSubmitting(false);
