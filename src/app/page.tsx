@@ -407,6 +407,9 @@ export default function HomePage() {
                     <div className="flex-1 min-w-0 flex items-center">
                       <Link href={`/post/${post.id}`} className="truncate font-medium hover:text-blue-600 transition-colors text-xs text-gray-900 block max-w-full">
                         {post.title}
+                        {post.images && post.images.length > 0 && (
+                          <span className="ml-1 text-gray-400 text-xs">📷</span>
+                        )}
                         {isNew(post.created_at) && <span className="ml-1 text-[8px] text-red-500 font-normal align-middle">NEW</span>}
                         {post.comment_count > 0 && (
                           <span className="ml-2 text-blue-400 text-[11px] align-middle">
@@ -442,6 +445,9 @@ export default function HomePage() {
                       <div className="flex-1 min-w-0 flex items-center">
                         <Link href={`/post/${post.id}`} className="truncate font-medium group-hover:text-blue-600 transition-colors text-xs text-gray-900 block max-w-full">
                           {post.title}
+                          {post.images && post.images.length > 0 && (
+                            <span className="ml-1 text-gray-400 text-xs">📷</span>
+                          )}
                           {isNew(post.created_at) && <span className="ml-1 text-[8px] text-red-500 font-normal align-middle">NEW</span>}
                           {post.comment_count > 0 && (
                             <span className="ml-2 text-blue-400 text-[11px] align-middle">
