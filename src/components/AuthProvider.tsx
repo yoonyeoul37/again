@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '@/types';
+import { supabase } from '@/lib/supabaseClient';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -10,34 +11,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 로컬 스토리지에서 사용자 정보 복원
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Failed to parse user data:', error);
-        localStorage.removeItem('user');
+    // 세션 복원 및 사용자 정보 fetch
+    const session = supabase.auth.getSession();
+    session.then(async ({ data }) => {
+      if (data.session) {
+        const { user: supaUser } = data.session;
+        setUser({
+          id: supaUser.id,
+          email: supaUser.email,
+          role: 'advertiser', // 필요시 실제 role 조회
+          name: supaUser.user_metadata?.name || ''
+        });
+        localStorage.setItem('user', JSON.stringify({
+          id: supaUser.id,
+          email: supaUser.email,
+          role: 'advertiser',
+          name: supaUser.user_metadata?.name || ''
+        }));
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    });
   }, []);
 
   const login = async (email: string, password: string) => {
-    // 실제 구현에서는 서버 API 호출
-    // 여기서는 간단한 예시
-    const mockUser: User = {
-      id: '1',
-      email,
-      role: email.includes('admin') ? 'admin' : email.includes('advertiser') ? 'advertiser' : 'user',
-      name: email.split('@')[0]
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    // users 테이블에서 role 조회
+    const { data: userRows } = await supabase
+      .from('users')
+      .select('id, email, role, name')
+      .eq('email', email)
+      .single();
+    if (userRows) {
+      setUser(userRows as User);
+      localStorage.setItem('user', JSON.stringify(userRows));
+    } else {
+      // users 테이블에 row가 없으면 기본 user로 생성
+      const { data: newUser } = await supabase
+        .from('users')
+        .insert([{ email, role: 'user', created_at: new Date().toISOString() }])
+        .select()
+        .single();
+      setUser(newUser as User);
+      localStorage.setItem('user', JSON.stringify(newUser));
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem('user');
   };

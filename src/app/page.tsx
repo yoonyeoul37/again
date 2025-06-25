@@ -15,7 +15,7 @@ const ads = [
   { id: "ad1", type: "AD", title: "[AD] 좌파들을 이길 수 있는 필승 전략", nickname: "익명", date: "2024-06-22", views: 6968, likes: 0 },
 ];
 
-// 지역별 광고 데이터
+// 지역별 광고 데이터 (기본값)
 const regionAds = {
   '송파구': { image: '/ad-songpa.jpg', text: '송파구 법무사 무료상담 ☎ 02-1234-5678' },
   '강남구': { image: '/ad-gangnam.jpg', text: '강남구 법무사 무료상담 ☎ 02-2345-6789' },
@@ -24,6 +24,36 @@ const regionAds = {
 
 function useRegionAd() {
   const [ad, setAd] = useState(regionAds.default);
+  const [actualAds, setActualAds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // 실제 광고 데이터 가져오기
+    async function fetchAds() {
+      try {
+        const { data, error } = await supabase
+          .from('ads')
+          .select('*')
+          .eq('status', 'active')
+          .gte('start_date', new Date().toISOString().split('T')[0])
+          .lte('end_date', new Date().toISOString().split('T')[0])
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('광고 로드 실패:', error);
+        } else {
+          setActualAds(data || []);
+        }
+      } catch (error) {
+        console.error('광고 로드 중 오류:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchAds();
+  }, []);
+
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -40,7 +70,8 @@ function useRegionAd() {
       setAd(regionAds.default);
     });
   }, []);
-  return ad;
+
+  return { ad, actualAds, loading };
 }
 
 const PAGE_SIZE = 20;
@@ -60,7 +91,7 @@ export default function HomePage() {
   const [page, setPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [mounted, setMounted] = useState(false);
-  const ad = useRegionAd();
+  const { ad, actualAds, loading } = useRegionAd();
 
   useEffect(() => {
     setMounted(true);
@@ -102,6 +133,15 @@ export default function HomePage() {
   const normalPosts = samplePosts.filter(post => !post.isNotice);
   const sortedPosts = [...noticePosts, ...normalPosts];
 
+  // 실제 광고 중에서 랜덤하게 선택
+  const getRandomAd = () => {
+    if (actualAds.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * actualAds.length);
+    return actualAds[randomIndex];
+  };
+
+  const randomAd = getRandomAd();
+
   return (
     <div className="min-h-screen bg-gray-50" style={{fontFamily: `'Malgun Gothic', '맑은 고딕', Dotum, '돋움', Arial, Helvetica, sans-serif`}}>
       {/* 상단 네비게이션/로고/메뉴/글쓰기 버튼 완전 삭제 */}
@@ -112,21 +152,55 @@ export default function HomePage() {
       <main className="mx-auto mt-8 mb-12" style={{maxWidth: '1200px'}}>
         {/* 리스트 위 배너 광고 (위치기반) */}
         <div className="mb-6">
-          {mounted && (
-            <div
-              className="w-full relative overflow-hidden rounded-xl shadow-lg"
-              style={{
-                backgroundImage: `url('${ad.image}')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                minHeight: '200px'
-              }}
-            >
-              <div className="absolute inset-0 bg-black/50" />
-              <div className="relative z-10 flex flex-col items-center justify-center h-full py-12 text-white text-center">
-                <span className="text-3xl font-bold drop-shadow-lg">{ad.text}</span>
-              </div>
+          {!loading && randomAd ? (
+            // 실제 광고주가 등록한 광고
+            <div className="w-full relative overflow-hidden rounded-xl shadow-lg">
+              {randomAd.image_url ? (
+                <div
+                  className="w-full h-48 bg-cover bg-center relative"
+                  style={{
+                    backgroundImage: `url('${randomAd.image_url}')`,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-black/50" />
+                  <div className="relative z-10 flex flex-col items-center justify-center h-full py-8 text-white text-center">
+                    <h3 className="text-2xl font-bold drop-shadow-lg mb-2">{randomAd.title}</h3>
+                    <p className="text-lg drop-shadow-lg mb-2">{randomAd.description}</p>
+                    <div className="text-sm drop-shadow-lg">
+                      {randomAd.advertiser} | ☎ {randomAd.phone}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full h-48 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg flex items-center justify-center">
+                  <div className="text-white text-center">
+                    <h3 className="text-2xl font-bold mb-2">{randomAd.title}</h3>
+                    <p className="text-lg mb-2">{randomAd.description}</p>
+                    <div className="text-sm">
+                      {randomAd.advertiser} | ☎ {randomAd.phone}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+          ) : (
+            // 기본 지역별 광고
+            mounted && (
+              <div
+                className="w-full relative overflow-hidden rounded-xl shadow-lg"
+                style={{
+                  backgroundImage: `url('${ad.image}')`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  minHeight: '200px'
+                }}
+              >
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="relative z-10 flex flex-col items-center justify-center h-full py-12 text-white text-center">
+                  <span className="text-3xl font-bold drop-shadow-lg">{ad.text}</span>
+                </div>
+              </div>
+            )
           )}
         </div>
         
@@ -483,25 +557,6 @@ export default function HomePage() {
                   {num}
                 </button>
               ))}
-            </div>
-            {/* 리스트 아래 배너 광고 (위치기반) */}
-            <div className="my-6">
-              {mounted && (
-                <div
-                  className="w-full relative overflow-hidden rounded-xl shadow-lg"
-                  style={{
-                    backgroundImage: `url('${ad.image}')`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    minHeight: '200px'
-                  }}
-                >
-                  <div className="absolute inset-0 bg-black/50" />
-                  <div className="relative z-10 flex flex-col items-center justify-center h-full py-12 text-white text-center">
-                    <span className="text-3xl font-bold drop-shadow-lg">{ad.text}</span>
-                  </div>
-                </div>
-              )}
             </div>
             
             {/* 하단 광고 */}

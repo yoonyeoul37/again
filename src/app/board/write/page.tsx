@@ -179,7 +179,7 @@ export default function WritePage() {
                 <option value="법인회생">[법인회생]</option>
                 <option value="법인파산">[법인파산]</option>
                 <option value="워크아웃">[워크아웃]</option>
-                <option value="신용회복위원회">[신용회복위원회]</option>
+                <option value="신용회복위원">[신용회복위원]</option>
                 <option value="대출">[대출관련]</option>
                 <option value="신용카드">[신용카드]</option>
                 <option value="신용점수">[신용점수]</option>

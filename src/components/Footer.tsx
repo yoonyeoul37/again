@@ -19,6 +19,9 @@ export default function Footer() {
           <a href="/advertising" className="border border-gray-300 bg-white text-gray-900 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 hover:bg-gray-100">
             광고 문의
           </a>
+          <a href="/advertiser/join" className="border border-blue-500 bg-white text-blue-700 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 hover:bg-blue-50">
+            광고주 회원가입
+          </a>
           
           {/* 광고주만 광고주 대시보드 링크 표시 */}
           {user?.role === 'advertiser' && (
