@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "희망톡톡",
+  title: "힘내톡톡",
   description: "신용회복, 개인회생, 재도전 정보를 나누는 커뮤니티"
 };
 

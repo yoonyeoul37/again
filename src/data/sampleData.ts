@@ -9,7 +9,9 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-15T10:30:00Z',
     viewCount: 156,
-    commentCount: 8
+    commentCount: 8,
+    likes: 0,
+    images: ['/001.jpg']
   },
   {
     id: '2',
@@ -19,7 +21,8 @@ export const samplePosts: Post[] = [
     category: '이혼상담',
     createdAt: '2024-01-14T15:45:00Z',
     viewCount: 203,
-    commentCount: 12
+    commentCount: 12,
+    likes: 0
   },
   {
     id: '3',
@@ -29,7 +32,8 @@ export const samplePosts: Post[] = [
     category: '법인파산',
     createdAt: '2024-01-13T09:20:00Z',
     viewCount: 89,
-    commentCount: 5
+    commentCount: 5,
+    likes: 0
   },
   {
     id: '4',
@@ -39,7 +43,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-12T14:10:00Z',
     viewCount: 134,
-    commentCount: 7
+    commentCount: 7,
+    likes: 0
   },
   {
     id: '5',
@@ -49,7 +54,8 @@ export const samplePosts: Post[] = [
     category: '이혼상담',
     createdAt: '2024-01-11T11:30:00Z',
     viewCount: 267,
-    commentCount: 15
+    commentCount: 15,
+    likes: 0
   },
   {
     id: '6',
@@ -59,7 +65,8 @@ export const samplePosts: Post[] = [
     category: '법인파산',
     createdAt: '2024-01-10T16:20:00Z',
     viewCount: 178,
-    commentCount: 9
+    commentCount: 9,
+    likes: 0
   },
   {
     id: '7',
@@ -69,7 +76,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-09T13:45:00Z',
     viewCount: 312,
-    commentCount: 18
+    commentCount: 18,
+    likes: 12
   },
   {
     id: '8',
@@ -79,7 +87,8 @@ export const samplePosts: Post[] = [
     category: '이혼상담',
     createdAt: '2024-01-08T10:15:00Z',
     viewCount: 145,
-    commentCount: 6
+    commentCount: 6,
+    likes: 0
   },
   {
     id: '9',
@@ -89,7 +98,8 @@ export const samplePosts: Post[] = [
     category: '법인파산',
     createdAt: '2024-01-07T08:30:00Z',
     viewCount: 223,
-    commentCount: 11
+    commentCount: 11,
+    likes: 0
   },
   {
     id: '10',
@@ -99,7 +109,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-06T17:00:00Z',
     viewCount: 445,
-    commentCount: 23
+    commentCount: 23,
+    likes: 15
   },
   {
     id: '11',
@@ -109,7 +120,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-05T12:00:00Z',
     viewCount: 10,
-    commentCount: 1
+    commentCount: 1,
+    likes: 0
   },
   {
     id: '12',
@@ -119,7 +131,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-04T12:00:00Z',
     viewCount: 20,
-    commentCount: 2
+    commentCount: 2,
+    likes: 0
   },
   {
     id: '13',
@@ -129,7 +142,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-03T12:00:00Z',
     viewCount: 30,
-    commentCount: 3
+    commentCount: 3,
+    likes: 0
   },
   {
     id: '14',
@@ -139,7 +153,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-02T12:00:00Z',
     viewCount: 40,
-    commentCount: 4
+    commentCount: 4,
+    likes: 0
   },
   {
     id: '15',
@@ -149,7 +164,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-01T12:00:00Z',
     viewCount: 50,
-    commentCount: 5
+    commentCount: 5,
+    likes: 0
   },
   {
     id: '16',
@@ -159,7 +175,8 @@ export const samplePosts: Post[] = [
     category: '대출',
     createdAt: '2024-01-16T10:00:00Z',
     viewCount: 89,
-    commentCount: 6
+    commentCount: 6,
+    likes: 0
   },
   {
     id: '17',
@@ -169,7 +186,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-01-17T14:30:00Z',
     viewCount: 156,
-    commentCount: 12
+    commentCount: 12,
+    likes: 0
   },
   {
     id: '18',
@@ -179,7 +197,8 @@ export const samplePosts: Post[] = [
     category: '대출',
     createdAt: '2024-01-18T09:15:00Z',
     viewCount: 234,
-    commentCount: 18
+    commentCount: 18,
+    likes: 0
   },
   {
     id: '19',
@@ -189,7 +208,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-01-19T16:45:00Z',
     viewCount: 178,
-    commentCount: 9
+    commentCount: 9,
+    likes: 0
   },
   {
     id: '20',
@@ -199,7 +219,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-01-20T11:20:00Z',
     viewCount: 167,
-    commentCount: 8
+    commentCount: 8,
+    likes: 0
   },
   {
     id: '21',
@@ -209,7 +230,8 @@ export const samplePosts: Post[] = [
     category: '회생절차',
     createdAt: '2024-01-21T09:30:00Z',
     viewCount: 234,
-    commentCount: 15
+    commentCount: 15,
+    likes: 0
   },
   {
     id: '22',
@@ -219,7 +241,8 @@ export const samplePosts: Post[] = [
     category: '상환계획',
     createdAt: '2024-01-22T14:15:00Z',
     viewCount: 189,
-    commentCount: 12
+    commentCount: 12,
+    likes: 0
   },
   {
     id: '23',
@@ -229,7 +252,8 @@ export const samplePosts: Post[] = [
     category: '법무사상담',
     createdAt: '2024-01-23T16:45:00Z',
     viewCount: 312,
-    commentCount: 20
+    commentCount: 20,
+    likes: 0
   },
   {
     id: '24',
@@ -239,7 +263,8 @@ export const samplePosts: Post[] = [
     category: '회생절차',
     createdAt: '2024-01-24T11:20:00Z',
     viewCount: 276,
-    commentCount: 18
+    commentCount: 18,
+    likes: 0
   },
   {
     id: '25',
@@ -249,7 +274,8 @@ export const samplePosts: Post[] = [
     category: '상환계획',
     createdAt: '2024-01-25T13:30:00Z',
     viewCount: 145,
-    commentCount: 9
+    commentCount: 9,
+    likes: 0
   },
   {
     id: '26',
@@ -259,7 +285,8 @@ export const samplePosts: Post[] = [
     category: '법무사상담',
     createdAt: '2024-01-26T10:15:00Z',
     viewCount: 198,
-    commentCount: 14
+    commentCount: 14,
+    likes: 0
   },
   {
     id: '27',
@@ -269,7 +296,8 @@ export const samplePosts: Post[] = [
     category: '회생절차',
     createdAt: '2024-01-27T15:40:00Z',
     viewCount: 167,
-    commentCount: 11
+    commentCount: 11,
+    likes: 0
   },
   {
     id: '28',
@@ -279,7 +307,8 @@ export const samplePosts: Post[] = [
     category: '상환계획',
     createdAt: '2024-01-28T12:25:00Z',
     viewCount: 134,
-    commentCount: 8
+    commentCount: 8,
+    likes: 0
   },
   {
     id: '29',
@@ -289,7 +318,8 @@ export const samplePosts: Post[] = [
     category: '법무사상담',
     createdAt: '2024-01-29T09:50:00Z',
     viewCount: 223,
-    commentCount: 16
+    commentCount: 16,
+    likes: 0
   },
   {
     id: '30',
@@ -299,7 +329,8 @@ export const samplePosts: Post[] = [
     category: '회생절차',
     createdAt: '2024-01-30T14:20:00Z',
     viewCount: 289,
-    commentCount: 22
+    commentCount: 22,
+    likes: 0
   },
   {
     id: '31',
@@ -309,7 +340,8 @@ export const samplePosts: Post[] = [
     category: '대출',
     createdAt: '2024-01-21T13:45:00Z',
     viewCount: 189,
-    commentCount: 11
+    commentCount: 11,
+    likes: 0
   },
   {
     id: '32',
@@ -319,7 +351,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-22T09:30:00Z',
     viewCount: 312,
-    commentCount: 19
+    commentCount: 19,
+    likes: 0
   },
   {
     id: '33',
@@ -329,7 +362,8 @@ export const samplePosts: Post[] = [
     category: '대출',
     createdAt: '2024-01-23T15:10:00Z',
     viewCount: 145,
-    commentCount: 8
+    commentCount: 8,
+    likes: 0
   },
   {
     id: '34',
@@ -339,7 +373,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-01-24T12:00:00Z',
     viewCount: 198,
-    commentCount: 13
+    commentCount: 13,
+    likes: 0
   },
   {
     id: '35',
@@ -349,7 +384,8 @@ export const samplePosts: Post[] = [
     category: '대출',
     createdAt: '2024-01-25T10:15:00Z',
     viewCount: 167,
-    commentCount: 10
+    commentCount: 10,
+    likes: 0
   },
   {
     id: '36',
@@ -359,7 +395,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-01-26T14:20:00Z',
     viewCount: 123,
-    commentCount: 7
+    commentCount: 7,
+    likes: 0
   },
   {
     id: '37',
@@ -369,7 +406,8 @@ export const samplePosts: Post[] = [
     category: '법인파산',
     createdAt: '2024-01-27T16:30:00Z',
     viewCount: 234,
-    commentCount: 14
+    commentCount: 14,
+    likes: 0
   },
   {
     id: '38',
@@ -379,7 +417,8 @@ export const samplePosts: Post[] = [
     category: '대출',
     createdAt: '2024-01-28T11:45:00Z',
     viewCount: 156,
-    commentCount: 9
+    commentCount: 9,
+    likes: 0
   },
   {
     id: '39',
@@ -389,7 +428,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-01-29T13:20:00Z',
     viewCount: 98,
-    commentCount: 6
+    commentCount: 6,
+    likes: 0
   },
   {
     id: '40',
@@ -399,7 +439,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-01-30T09:00:00Z',
     viewCount: 345,
-    commentCount: 22
+    commentCount: 22,
+    likes: 0
   },
   {
     id: '41',
@@ -409,7 +450,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-01-31T14:15:00Z',
     viewCount: 178,
-    commentCount: 11
+    commentCount: 11,
+    likes: 0
   },
   {
     id: '42',
@@ -419,7 +461,8 @@ export const samplePosts: Post[] = [
     category: '법인파산',
     createdAt: '2024-02-01T10:30:00Z',
     viewCount: 134,
-    commentCount: 8
+    commentCount: 8,
+    likes: 0
   },
   {
     id: '43',
@@ -429,7 +472,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-02-02T16:45:00Z',
     viewCount: 223,
-    commentCount: 14
+    commentCount: 14,
+    likes: 0
   },
   {
     id: '44',
@@ -439,7 +483,8 @@ export const samplePosts: Post[] = [
     category: '개인회생',
     createdAt: '2024-02-03T12:20:00Z',
     viewCount: 156,
-    commentCount: 9
+    commentCount: 9,
+    likes: 0
   },
   {
     id: '45',
@@ -449,7 +494,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-02-04T09:10:00Z',
     viewCount: 98,
-    commentCount: 6
+    commentCount: 6,
+    likes: 0
   },
   {
     id: '46',
@@ -459,7 +505,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-02-05T15:30:00Z',
     viewCount: 145,
-    commentCount: 10
+    commentCount: 10,
+    likes: 0
   },
   {
     id: '47',
@@ -469,7 +516,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-02-06T11:45:00Z',
     viewCount: 112,
-    commentCount: 7
+    commentCount: 7,
+    likes: 0
   },
   {
     id: '48',
@@ -479,7 +527,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-02-07T13:20:00Z',
     viewCount: 167,
-    commentCount: 11
+    commentCount: 11,
+    likes: 0
   },
   {
     id: '49',
@@ -489,7 +538,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-02-08T10:00:00Z',
     viewCount: 89,
-    commentCount: 5
+    commentCount: 5,
+    likes: 0
   },
   {
     id: '50',
@@ -499,7 +549,8 @@ export const samplePosts: Post[] = [
     category: '신용카드',
     createdAt: '2024-02-09T16:15:00Z',
     viewCount: 134,
-    commentCount: 8
+    commentCount: 8,
+    likes: 0
   },
   {
     id: '51',
@@ -509,7 +560,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-10T10:30:00Z',
     viewCount: 456,
-    commentCount: 28
+    commentCount: 28,
+    likes: 18
   },
   {
     id: '52',
@@ -519,7 +571,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-11T14:20:00Z',
     viewCount: 234,
-    commentCount: 15
+    commentCount: 15,
+    likes: 0
   },
   {
     id: '53',
@@ -529,7 +582,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-12T09:15:00Z',
     viewCount: 189,
-    commentCount: 12
+    commentCount: 12,
+    likes: 0
   },
   {
     id: '54',
@@ -539,7 +593,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-13T16:45:00Z',
     viewCount: 312,
-    commentCount: 19
+    commentCount: 19,
+    likes: 0
   },
   {
     id: '55',
@@ -549,7 +604,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-14T11:30:00Z',
     viewCount: 278,
-    commentCount: 16
+    commentCount: 16,
+    likes: 0
   },
   {
     id: '56',
@@ -559,7 +615,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-15T13:20:00Z',
     viewCount: 167,
-    commentCount: 11
+    commentCount: 11,
+    likes: 0
   },
   {
     id: '57',
@@ -569,7 +626,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-16T15:10:00Z',
     viewCount: 145,
-    commentCount: 9
+    commentCount: 9,
+    likes: 0
   },
   {
     id: '58',
@@ -579,7 +637,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-17T10:45:00Z',
     viewCount: 198,
-    commentCount: 13
+    commentCount: 13,
+    likes: 0
   },
   {
     id: '59',
@@ -589,7 +648,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-18T12:00:00Z',
     viewCount: 223,
-    commentCount: 14
+    commentCount: 14,
+    likes: 0
   },
   {
     id: '60',
@@ -599,7 +659,8 @@ export const samplePosts: Post[] = [
     category: '신용점수',
     createdAt: '2024-02-19T14:30:00Z',
     viewCount: 134,
-    commentCount: 8
+    commentCount: 8,
+    likes: 0
   },
   {
     id: '61',
@@ -609,7 +670,8 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-20T09:15:00Z',
     viewCount: 267,
-    commentCount: 15
+    commentCount: 15,
+    likes: 0
   },
   {
     id: '62',
@@ -619,7 +681,8 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-21T11:30:00Z',
     viewCount: 189,
-    commentCount: 12
+    commentCount: 12,
+    likes: 0
   },
   {
     id: '63',
@@ -629,7 +692,8 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-22T14:45:00Z',
     viewCount: 156,
-    commentCount: 9
+    commentCount: 9,
+    likes: 0
   },
   {
     id: '64',
@@ -639,7 +703,8 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-23T16:20:00Z',
     viewCount: 312,
-    commentCount: 18
+    commentCount: 18,
+    likes: 0
   },
   {
     id: '65',
@@ -649,7 +714,8 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-24T10:00:00Z',
     viewCount: 445,
-    commentCount: 23
+    commentCount: 23,
+    likes: 22
   },
   {
     id: '66',
@@ -659,7 +725,8 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-25T13:15:00Z',
     viewCount: 223,
-    commentCount: 14
+    commentCount: 14,
+    likes: 0
   },
   {
     id: '67',
@@ -669,7 +736,8 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-26T15:30:00Z',
     viewCount: 178,
-    commentCount: 11
+    commentCount: 11,
+    likes: 0
   },
   {
     id: '68',
@@ -679,7 +747,8 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-27T09:45:00Z',
     viewCount: 334,
-    commentCount: 19
+    commentCount: 19,
+    likes: 0
   },
   {
     id: '69',
@@ -689,7 +758,8 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-28T12:00:00Z',
     viewCount: 201,
-    commentCount: 13
+    commentCount: 13,
+    likes: 0
   },
   {
     id: '70',
@@ -699,7 +769,19 @@ export const samplePosts: Post[] = [
     category: '취업',
     createdAt: '2024-02-29T14:20:00Z',
     viewCount: 167,
-    commentCount: 10
+    commentCount: 10,
+    likes: 0
+  },
+  {
+    id: '999',
+    title: '오늘의 샘플글',
+    content: '이 글은 NEW 뱃지 테스트용 샘플글입니다.',
+    nickname: '관리자',
+    category: '개인회생',
+    createdAt: new Date().toISOString(),
+    viewCount: 0,
+    commentCount: 0,
+    likes: 0
   }
 ];
 

@@ -11,13 +11,13 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* 로고 */}
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2" onClick={() => { window.location.href = '/'; }}>
             <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center shadow rounded-full">
               {/* 말풍선(채팅) SVG 아이콘 */}
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.8L3 20l1.09-3.27C3.4 15.1 3 13.59 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             </div>
             <span className="text-lg font-bold text-white tracking-tight drop-shadow">
-              희망톡톡! <span className="text-green-200 font-extrabold text-base">함께 나누는 신용회복 이야기</span>
+              힘내톡톡! <span className="text-green-200 font-extrabold text-base">함께 힘내는 신용회복 이야기</span>
             </span>
           </Link>
 

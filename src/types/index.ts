@@ -7,7 +7,9 @@ export interface Post {
   createdAt: string;
   viewCount: number;
   commentCount: number;
+  likes: number;
   images?: string[];
+  isNotice?: boolean;
 }
 
 export interface Comment {
