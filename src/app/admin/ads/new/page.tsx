@@ -186,6 +186,7 @@ export default function AdminNewAdPage() {
     advertiser: '',
     phone: '',
     email: '',
+    website: '',
     title: '',
     description: '',
     startDate: '',
@@ -307,6 +308,7 @@ export default function AdminNewAdPage() {
           advertiser: formData.advertiser,
           phone: formData.phone,
           email: formData.email,
+          website: formData.website,
           title: formData.title,
           description: formData.description,
           start_date: formData.startDate,
@@ -405,6 +407,19 @@ export default function AdminNewAdPage() {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="예: contact@law.com"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  웹사이트 URL
+                </label>
+                <input
+                  type="url"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="예: https://www.lawfirm.com"
                 />
               </div>
             </div>

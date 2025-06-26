@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
+    name TEXT,
     role TEXT CHECK (role IN ('user', 'admin', 'advertiser')) DEFAULT 'user',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -38,7 +39,8 @@ CREATE TABLE IF NOT EXISTS public.ads (
     image_url TEXT,
     status TEXT CHECK (status IN ('pending', 'approved', 'rejected', 'active', 'inactive')) DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    website TEXT
 );
 
 -- 4. RLS (Row Level Security) 정책 설정
@@ -185,4 +187,25 @@ CREATE TRIGGER update_ads_updated_at
 
 -- 인증된 사용자가 자신이 업로드한 이미지를 삭제할 수 있음
 -- CREATE POLICY "Users can delete own images" ON storage.objects
---     FOR DELETE USING (bucket_id = 'ad-images' AND auth.uid()::text = owner); 
+--     FOR DELETE USING (bucket_id = 'ad-images' AND auth.uid()::text = owner);
+
+-- 사이트 설정 테이블 생성
+CREATE TABLE IF NOT EXISTS site_settings (
+  id SERIAL PRIMARY KEY,
+  key VARCHAR(255) UNIQUE NOT NULL,
+  hope_image TEXT,
+  hope_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 기본 메인 페이지 설정 추가
+INSERT INTO site_settings (key, hope_image, hope_message) 
+VALUES ('main_page_hope', '/globe.svg', '희망은 언제나 가까이에 있습니다.\n함께 힘내요!')
+ON CONFLICT (key) DO NOTHING;
+
+-- 광고 테이블에 website 컬럼 추가
+ALTER TABLE ads ADD COLUMN IF NOT EXISTS website TEXT;
+
+-- 기존 광고들의 website 컬럼을 NULL로 설정 (기본값)
+UPDATE ads SET website = NULL WHERE website IS NULL; 

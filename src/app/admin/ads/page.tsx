@@ -508,12 +508,20 @@ export default function AdminAdsPage() {
                               {updatingAd === ad.id ? '처리중...' : '활성화'}
                             </button>
                           )}
-                          <button
-                            onClick={() => deleteAd(ad.id)}
-                            className="block w-full px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
-                          >
-                            삭제
-                          </button>
+                          <div className="flex gap-2 mt-4">
+                            <Link
+                              href={`/admin/ads/edit/${ad.id}`}
+                              className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm font-medium"
+                            >
+                              수정
+                            </Link>
+                            <button
+                              onClick={() => deleteAd(ad.id)}
+                              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium"
+                            >
+                              삭제
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,38 +21,52 @@ export default function LoginPage() {
   // 이미 로그인한 사용자는 역할에 따라 리다이렉션
   useEffect(() => {
     if (user) {
-      if (user.role === 'admin') {
-        router.push('/admin/dashboard');
-      } else if (user.role === 'advertiser') {
-        router.push('/advertiser/dashboard');
+      if (role === 'admin') {
+        if (user.role === 'admin') {
+          router.push('/admin/dashboard');
+        } else {
+          alert('관리자 계정이 아닙니다.');
+        }
+      } else if (role === 'advertiser') {
+        if (user.role === 'advertiser') {
+          router.push('/advertiser/dashboard');
+        } else {
+          alert('광고주 계정이 아닙니다.');
+        }
       } else {
         router.push('/');
       }
     }
-  }, [user, router]);
+  }, [user, router, role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
+      console.log('로그인 시도:', { email, password });
       await login(email, password);
+      console.log('로그인 성공');
       
-      // 로그인 성공 후 역할에 따라 리다이렉션
-      // login 함수에서 이미 user 정보를 가져오므로 잠시 대기
-      setTimeout(() => {
-        if (user?.role === 'admin') {
-          router.push('/admin/dashboard');
-        } else if (user?.role === 'advertiser') {
-          router.push('/advertiser/dashboard');
-        } else {
-          router.push('/');
-        }
-      }, 100);
+      // 로그인 성공 후 user 상태가 업데이트될 때까지 대기
+      // useEffect에서 자동으로 리다이렉션 처리됨
       
     } catch (error) {
       console.error('Login failed:', error);
-      alert('로그인에 실패했습니다.');
+      // 더 자세한 오류 메시지 표시
+      let errorMessage = '로그인에 실패했습니다.';
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = '이메일 인증이 필요합니다. 이메일을 확인해주세요.';
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+        } else {
+          errorMessage = `로그인 오류: ${error.message}`;
+        }
+      }
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -176,6 +191,11 @@ export default function LoginPage() {
               >
                 비밀번호를 잊으셨나요?
               </button>
+            </div>
+            <div className="mt-2 text-center">
+              <Link href="/signup" className="text-xs text-green-600 hover:underline">
+                계정이 없으신가요? 회원가입하기
+              </Link>
             </div>
           </>
         ) : (

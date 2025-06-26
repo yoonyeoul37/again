@@ -11,33 +11,106 @@ import { supabase } from '@/lib/supabaseClient';
 import AdSlot from '@/components/AdSlot';
 import { useAuth } from '@/components/AuthProvider';
 
-// 지역별 광고 데이터 (메인 페이지와 동일)
-const regionAds = {
-  '송파구': { image: '/ad-songpa.jpg', text: '송파구 법무사 무료상담 ☎ 02-1234-5678' },
-  '강남구': { image: '/ad-gangnam.jpg', text: '강남구 법무사 무료상담 ☎ 02-2345-6789' },
-  default: { image: '/001.jpg', text: '전국 법무사 무료상담 ☎ 1588-0000' }
-};
-
 function useRegionAd() {
-  const [ad, setAd] = useState(regionAds.default);
+  const [ad, setAd] = useState(null); // 기본값 null
   const [actualAds, setActualAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<string>('');
+
+  // IP 기반 위치 감지 (무료 API)
+  const getLocationByIP = async () => {
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      const data = await response.json();
+      console.log('IP 기반 위치:', data);
+      return data.city || data.region || '';
+    } catch (error) {
+      console.log('IP 기반 위치 감지 실패:', error);
+      return '';
+    }
+  };
+
+  // 위치 기반 광고 매칭
+  const matchLocationToAd = (location: string) => {
+    console.log('사용자 위치:', location);
+    console.log('로드된 광고 개수:', actualAds.length);
+    
+    // 실제 광고 데이터에서 위치 매칭
+    if (actualAds.length > 0) {
+      const matchingAds = actualAds.filter(ad => {
+        if (ad.ad_type === 'major') {
+          // 대도시 전체 광고 매칭
+          const majorCityMap: { [key: string]: string[] } = {
+            'seoul': ['서울', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
+            'busan': ['부산', '강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
+            'daegu': ['대구', '남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
+            'incheon': ['인천', '계양구', '남구', '남동구', '동구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
+            'daejeon': ['대전', '대덕구', '동구', '서구', '유성구', '중구'],
+            'gwangju': ['광주', '광산구', '남구', '동구', '북구', '서구'],
+            'ulsan': ['울산', '남구', '동구', '북구', '울주군', '중구'],
+            'sejong': ['세종', '세종특별자치시']
+          };
+          
+          const cityRegions = majorCityMap[ad.major_city || ''] || [];
+          return cityRegions.some(region => location.includes(region));
+        } else if (ad.ad_type === 'regional' && ad.regions) {
+          // 중소도시/군 선택 광고 매칭
+          const regionMap: { [key: string]: string } = {
+            'suwon': '수원시', 'seongnam': '성남시', 'bucheon': '부천시', 'ansan': '안산시',
+            'anyang': '안양시', 'pyeongtaek': '평택시', 'dongducheon': '동두천시',
+            'uijeongbu': '의정부시', 'goyang': '고양시', 'gwangmyeong': '광명시',
+            'gwangju_gyeonggi': '광주시', 'yongin': '용인시', 'paju': '파주시',
+            'icheon': '이천시', 'anseong': '안성시', 'gimpo': '김포시',
+            'hwaseong': '화성시', 'yangju': '양주시', 'pocheon': '포천시',
+            'yeoju': '여주시', 'gapyeong': '가평군', 'yangpyeong': '양평군',
+            'yeoncheon': '연천군'
+          };
+          
+          return ad.regions.some(region => {
+            const regionName = regionMap[region] || region;
+            return location.includes(regionName);
+          });
+        }
+        return false;
+      });
+      
+      console.log('매칭되는 광고 개수:', matchingAds.length);
+      
+      if (matchingAds.length > 0) {
+        // 매칭되는 광고가 여러 개일 때 랜덤으로 선택
+        const randomIndex = Math.floor(Math.random() * matchingAds.length);
+        const matchingAd = matchingAds[randomIndex];
+        console.log('랜덤 선택된 광고:', matchingAd);
+        return {
+          image: matchingAd.image_url || '',
+          text: `${matchingAd.title} - ${matchingAd.phone}`,
+          advertiser: matchingAd.advertiser
+        };
+      }
+    }
+    
+    // 매칭되는 광고가 없으면 null 반환
+    console.log('노출할 광고 없음');
+    return null;
+  };
 
   useEffect(() => {
-    // 실제 광고 데이터 가져오기
-    async function fetchAds() {
+    const initializeAds = async () => {
+      // 1. 실제 광고 데이터 가져오기
       try {
+        const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabase
           .from('ads')
           .select('*')
           .eq('status', 'active')
-          .gte('start_date', new Date().toISOString().split('T')[0])
-          .lte('end_date', new Date().toISOString().split('T')[0])
+          .gte('start_date', today)
+          .lte('end_date', today)
           .order('created_at', { ascending: false });
 
         if (error) {
           console.error('광고 로드 실패:', error);
         } else {
+          console.log('로드된 광고 데이터:', data);
           setActualAds(data || []);
         }
       } catch (error) {
@@ -45,36 +118,60 @@ function useRegionAd() {
       } finally {
         setLoading(false);
       }
-    }
 
-    fetchAds();
-  }, []);
+      // 2. 위치 감지 및 광고 매칭
+      const detectLocation = async () => {
+        // 1. 브라우저 Geolocation 시도
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(async (pos) => {
+            const { latitude, longitude } = pos.coords;
+            console.log('GPS 위치:', latitude, longitude);
+            
+            // 임시로 하드코딩된 위치 매핑 (개발용)
+            let detectedLocation = '';
+            if (latitude > 37.5 && latitude < 37.7 && longitude > 126.9 && longitude < 127.1) {
+              detectedLocation = '강남구'; // 서울 강남구 근처
+            } else if (latitude > 37.4 && latitude < 37.6 && longitude > 126.7 && longitude < 126.9) {
+              detectedLocation = '송파구'; // 서울 송파구 근처
+            } else {
+              detectedLocation = '서울'; // 기본값
+            }
+            
+            setUserLocation(detectedLocation);
+            const matchedAd = matchLocationToAd(detectedLocation);
+            setAd(matchedAd);
+          }, async (error) => {
+            console.log('GPS 위치 감지 실패:', error);
+            // 2. IP 기반 위치 감지로 폴백
+            const ipLocation = await getLocationByIP();
+            setUserLocation(ipLocation);
+            const matchedAd = matchLocationToAd(ipLocation);
+            setAd(matchedAd);
+          });
+        } else {
+          // 3. IP 기반 위치 감지
+          const ipLocation = await getLocationByIP();
+          setUserLocation(ipLocation);
+          const matchedAd = matchLocationToAd(ipLocation);
+          setAd(matchedAd);
+        }
+      };
 
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      // 카카오 REST API Key 필요! 아래 YOUR_REST_API_KEY를 발급받은 키로 교체하세요.
-      const res = await fetch(
-        `https://dapi.kakao.com/v2/local/geo/coord2regioncode.json?x=${longitude}&y=${latitude}`,
-        { headers: { Authorization: 'KakaoAK YOUR_REST_API_KEY' } }
-      );
-      const data = await res.json();
-      const regionName = data.documents?.[0]?.region_2depth_name || '';
-      setAd(regionAds[regionName] || regionAds.default);
-    }, () => {
-      setAd(regionAds.default);
-    });
-  }, []);
+      // 광고 데이터 로드 후 위치 감지 실행
+      detectLocation();
+    };
 
-  return { ad, actualAds, loading };
+    initializeAds();
+  }, []); // 빈 의존성 배열로 컴포넌트 마운트 시에만 실행
+
+  return { ad, actualAds, loading, userLocation };
 }
 
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
   const postId = params.id as string;
-  const { ad, actualAds, loading } = useRegionAd();
+  const { ad, actualAds, loading, userLocation } = useRegionAd();
   const { user } = useAuth(); // 관리자 권한 확인용
 
   const [post, setPost] = useState<Post | null>(null);
@@ -233,18 +330,88 @@ export default function PostDetailPage() {
     return colors[category] || 'bg-gray-100 text-gray-800';
   };
 
-  const handleDeleteComment = (id: string) => {
+  const handleDeleteComment = async (id: string) => {
+    const comment = comments.find(c => c.id === id);
+    if (!comment) return;
+    
+    const password = prompt('댓글 삭제를 위해 비밀번호를 입력하세요:');
+    if (!password) return;
+    
+    if (password !== comment.password) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    
     if (confirm('댓글을 삭제하시겠습니까?')) {
-      setComments(prev => prev.filter(c => c.id !== id));
+      try {
+        // 해당 댓글의 답글들도 함께 삭제
+        const replies = comments.filter(c => c.parent_id === id);
+        const deleteIds = [id, ...replies.map(r => r.id)];
+        
+        const { error } = await supabase
+          .from('comments')
+          .delete()
+          .in('id', deleteIds);
+
+        if (error) {
+          console.error('댓글 삭제 실패:', error);
+          alert('댓글 삭제 중 오류가 발생했습니다.');
+        } else {
+          // 삭제된 댓글 + 답글 개수만큼 감소
+          const deletedCount = deleteIds.length;
+          await supabase
+            .from('posts')
+            .update({ comment_count: Math.max((post?.comment_count || 0) - deletedCount, 0) })
+            .eq('id', postId);
+          
+          // UI 업데이트 - 삭제된 댓글과 답글들 모두 제거
+          setComments(prev => prev.filter(c => !deleteIds.includes(c.id)));
+          setPost(prev => prev ? { ...prev, comment_count: Math.max((prev.comment_count || 0) - deletedCount, 0) } : prev);
+          alert(`댓글과 답글 ${deletedCount}개가 삭제되었습니다.`);
+        }
+      } catch (error) {
+        console.error('댓글 삭제 중 오류:', error);
+        alert('댓글 삭제 중 오류가 발생했습니다.');
+      }
     }
   };
 
-  const handleEditComment = (id: string, content: string) => {
+  const handleEditComment = async (id: string, content: string) => {
+    const comment = comments.find(c => c.id === id);
+    if (!comment) return;
+    
+    const password = prompt('댓글 수정을 위해 비밀번호를 입력하세요:');
+    if (!password) return;
+    
+    if (password !== comment.password) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    
     setComments(prev => prev.map(c => c.id === id ? { ...c, content, isEditing: true } : c));
   };
 
-  const handleSaveEdit = (id: string) => {
-    setComments(prev => prev.map(c => c.id === id ? { ...c, isEditing: false } : c));
+  const handleSaveEdit = async (id: string) => {
+    const comment = comments.find(c => c.id === id);
+    if (!comment) return;
+    
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .update({ content: comment.content })
+        .eq('id', id);
+
+      if (error) {
+        console.error('댓글 수정 실패:', error);
+        alert('댓글 수정 중 오류가 발생했습니다.');
+      } else {
+        setComments(prev => prev.map(c => c.id === id ? { ...c, isEditing: false } : c));
+        alert('댓글이 수정되었습니다.');
+      }
+    } catch (error) {
+      console.error('댓글 수정 중 오류:', error);
+      alert('댓글 수정 중 오류가 발생했습니다.');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -352,15 +519,6 @@ export default function PostDetailPage() {
     }
   };
 
-  // 실제 광고 중에서 랜덤하게 선택
-  const getRandomAd = () => {
-    if (actualAds.length === 0) return null;
-    const randomIndex = Math.floor(Math.random() * actualAds.length);
-    return actualAds[randomIndex];
-  };
-
-  const randomAd = getRandomAd();
-
   // 관리자용 게시글 삭제 함수
   const handleAdminDeletePost = async () => {
     if (!user || user.role !== 'admin') return;
@@ -377,7 +535,7 @@ export default function PostDetailPage() {
           alert('게시글 삭제 중 오류가 발생했습니다.');
         } else {
           alert('게시글이 삭제되었습니다.');
-          router.push('/board');
+          router.push('/');
         }
       } catch (error) {
         console.error('게시글 삭제 중 오류:', error);
@@ -392,25 +550,30 @@ export default function PostDetailPage() {
     
     if (confirm('관리자 권한으로 이 댓글을 삭제하시겠습니까?')) {
       try {
+        // 해당 댓글의 답글들도 함께 삭제
+        const replies = comments.filter(c => c.parent_id === commentId);
+        const deleteIds = [commentId, ...replies.map(r => r.id)];
+        
         const { error } = await supabase
           .from('comments')
           .delete()
-          .eq('id', commentId);
+          .in('id', deleteIds);
 
         if (error) {
           console.error('댓글 삭제 실패:', error);
           alert('댓글 삭제 중 오류가 발생했습니다.');
         } else {
-          // 댓글 개수 감소
+          // 삭제된 댓글 + 답글 개수만큼 감소
+          const deletedCount = deleteIds.length;
           await supabase
             .from('posts')
-            .update({ comment_count: Math.max((post?.comment_count || 0) - 1, 0) })
+            .update({ comment_count: Math.max((post?.comment_count || 0) - deletedCount, 0) })
             .eq('id', postId);
           
-          // UI 업데이트
-          setComments(prev => prev.filter(c => c.id !== commentId));
-          setPost(prev => prev ? { ...prev, comment_count: Math.max((prev.comment_count || 0) - 1, 0) } : prev);
-          alert('댓글이 삭제되었습니다.');
+          // UI 업데이트 - 삭제된 댓글과 답글들 모두 제거
+          setComments(prev => prev.filter(c => !deleteIds.includes(c.id)));
+          setPost(prev => prev ? { ...prev, comment_count: Math.max((prev.comment_count || 0) - deletedCount, 0) } : prev);
+          alert(`댓글과 답글 ${deletedCount}개가 삭제되었습니다.`);
         }
       } catch (error) {
         console.error('댓글 삭제 중 오류:', error);
@@ -536,39 +699,7 @@ export default function PostDetailPage() {
           <div className="flex-1">
             {/* 게시글 상단 광고 */}
             <div className="mb-6">
-              {!loading && randomAd ? (
-                // 실제 광고주가 등록한 광고
-                <div className="w-full relative overflow-hidden rounded-xl shadow-lg">
-                  {randomAd.image_url ? (
-                    <div
-                      className="w-full h-32 bg-cover bg-center relative"
-                      style={{
-                        backgroundImage: `url('${randomAd.image_url}')`,
-                      }}
-                    >
-                      <div className="absolute inset-0 bg-black/50" />
-                      <div className="relative z-10 flex flex-col items-center justify-center h-full py-4 text-white text-center">
-                        <h3 className="text-lg font-bold drop-shadow-lg mb-1">{randomAd.title}</h3>
-                        <p className="text-sm drop-shadow-lg mb-1">{randomAd.description}</p>
-                        <div className="text-xs drop-shadow-lg">
-                          {randomAd.advertiser} | ☎ {randomAd.phone}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-32 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg flex items-center justify-center">
-                      <div className="text-white text-center">
-                        <h3 className="text-lg font-bold mb-1">{randomAd.title}</h3>
-                        <p className="text-sm mb-1">{randomAd.description}</p>
-                        <div className="text-xs">
-                          {randomAd.advertiser} | ☎ {randomAd.phone}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // 기본 지역별 광고
+              {ad && (
                 <div
                   className="w-full relative overflow-hidden rounded-xl shadow-lg"
                   style={{
@@ -749,21 +880,28 @@ export default function PostDetailPage() {
                   return (
                     <div className="w-full relative overflow-hidden rounded-xl shadow-lg">
                       {secondAd.image_url ? (
-                        <div
-                          className="w-full h-32 bg-cover bg-center relative"
-                          style={{
-                            backgroundImage: `url('${secondAd.image_url}')`,
-                          }}
-                        >
-                          <div className="absolute inset-0 bg-black/50" />
-                          <div className="relative z-10 flex flex-col items-center justify-center h-full py-4 text-white text-center">
-                            <h3 className="text-lg font-bold drop-shadow-lg mb-1">{secondAd.title}</h3>
-                            <p className="text-sm drop-shadow-lg mb-1">{secondAd.description}</p>
-                            <div className="text-xs drop-shadow-lg">
-                              {secondAd.advertiser} | ☎ {secondAd.phone}
-                            </div>
+                        secondAd.website ? (
+                          <a 
+                            href={secondAd.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="block w-full h-32 bg-cover bg-center relative hover:opacity-90 transition-opacity"
+                            style={{
+                              backgroundImage: `url('${secondAd.image_url}')`,
+                            }}
+                          >
+                            {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
+                          </a>
+                        ) : (
+                          <div
+                            className="w-full h-32 bg-cover bg-center relative"
+                            style={{
+                              backgroundImage: `url('${secondAd.image_url}')`,
+                            }}
+                          >
+                            {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
                           </div>
-                        </div>
+                        )
                       ) : (
                         <div className="w-full h-32 bg-gradient-to-r from-green-600 to-teal-600 rounded-xl shadow-lg flex items-center justify-center">
                           <div className="text-white text-center">
@@ -954,7 +1092,7 @@ export default function PostDetailPage() {
                     const { error } = await supabase.from('posts').delete().eq('id', postId);
                     if (!error) {
                       alert('게시글이 삭제되었습니다.');
-                      window.location.href = '/';
+                      router.push('/');
                     } else {
                       alert('삭제 중 오류 발생: ' + error.message);
                     }

@@ -187,13 +187,47 @@ export default function AdvertiserJoinPage() {
 
       console.log("Auth 성공:", authData);
 
-      // 2. 이메일 인증 안내 메시지
+      // 2. users 테이블에 row 추가
+      const userId = authData.user?.id || authData.session?.user?.id;
+      if (userId) {
+        const { error: userInsertError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: userId,
+              email: form.email,
+              role: 'advertiser'
+            }
+          ]);
+        if (userInsertError) {
+          setMessage('users 테이블 추가 실패: ' + userInsertError.message);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 3. advertisers 테이블에 row 추가
+      const { error: advInsertError } = await supabase
+        .from('advertisers')
+        .insert([
+          {
+            name: form.name,
+            phone: form.phone,
+            email: form.email,
+            status: 'pending'
+          }
+        ]);
+      if (advInsertError) {
+        setMessage('advertisers 테이블 추가 실패: ' + advInsertError.message);
+        setLoading(false);
+        return;
+      }
+
+      // 4. 이메일 인증 안내 메시지
       setMessage("회원가입이 완료되었습니다! 이메일로 전송된 인증 링크를 클릭해 인증을 완료해 주세요. 인증 후 로그인하실 수 있습니다.");
       setForm({ name: "", phone: "", email: "", password: "" });
       setLoading(false);
       return;
-
-      // (이후 로그인/DB insert는 이메일 인증 후 별도 로그인 시도 시 처리)
 
     } catch (error) {
       console.error("예상치 못한 오류:", error);

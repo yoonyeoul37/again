@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/AuthProvider';
+import { useRouter } from 'next/navigation';
 
 // Post 타입 정의
 interface Post {
@@ -22,6 +23,7 @@ export default function BoardPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth(); // 관리자 권한 확인용
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchPosts() {
@@ -57,6 +59,7 @@ export default function BoardPage() {
           // 목록에서 제거
           setPosts(prev => prev.filter(post => post.id !== postId));
           alert('게시글이 삭제되었습니다.');
+          router.push('/'); // 삭제 후 메인(홈)으로 이동
         }
       } catch (error) {
         console.error('게시글 삭제 중 오류:', error);

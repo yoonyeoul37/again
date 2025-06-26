@@ -15,6 +15,12 @@ interface StatsData {
   regionStats: { name: string; count: number; percentage: number }[];
 }
 
+// 메인 페이지 설정 타입
+interface MainPageSettings {
+  hopeImage: string;
+  hopeMessage: string;
+}
+
 export default function AdminDashboard() {
   const { user, isLoading } = useAuth();
   const [stats, setStats] = useState<StatsData>({
@@ -25,9 +31,16 @@ export default function AdminDashboard() {
     recentAds: [],
     regionStats: []
   });
+  const [mainPageSettings, setMainPageSettings] = useState<MainPageSettings>({
+    hopeImage: '/globe.svg',
+    hopeMessage: '희망은 언제나 가까이에 있습니다.\n함께 힘내요!'
+  });
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -40,6 +53,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!user) return;
     fetchStats();
+    fetchMainPageSettings();
   }, [user]);
 
   const fetchStats = async () => {
@@ -119,6 +133,130 @@ export default function AdminDashboard() {
       console.error('통계 데이터 가져오기 오류:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMainPageSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('key', 'main_page_hope')
+        .single();
+
+      if (error) {
+        // 테이블이 없거나 데이터가 없는 경우 기본값 사용
+        console.log('설정을 불러올 수 없어 기본값을 사용합니다:', error.message);
+        return;
+      }
+
+      if (data) {
+        setMainPageSettings({
+          hopeImage: data.hope_image || '/globe.svg',
+          hopeMessage: data.hope_message || '희망은 언제나 가까이에 있습니다.\n함께 힘내요!'
+        });
+      }
+    } catch (error) {
+      console.log('설정 불러오기 중 오류 발생, 기본값 사용:', error);
+    }
+  };
+
+  const saveMainPageSettings = async () => {
+    setSavingSettings(true);
+    try {
+      // 먼저 테이블이 존재하는지 확인하고 없으면 생성
+      const { error: tableError } = await supabase
+        .from('site_settings')
+        .select('id')
+        .limit(1);
+
+      if (tableError && tableError.code === '42P01') {
+        // 테이블이 없는 경우, RPC를 통해 테이블 생성 시도
+        console.log('site_settings 테이블이 없습니다. 수동으로 생성해주세요.');
+        alert('site_settings 테이블이 없습니다. Supabase에서 테이블을 생성한 후 다시 시도해주세요.');
+        setSavingSettings(false);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({
+          key: 'main_page_hope',
+          hope_image: mainPageSettings.hopeImage,
+          hope_message: mainPageSettings.hopeMessage,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('설정 저장 실패:', error);
+        alert('설정 저장 중 오류가 발생했습니다: ' + error.message);
+      } else {
+        alert('메인 페이지 설정이 저장되었습니다!');
+      }
+    } catch (error) {
+      console.error('설정 저장 오류:', error);
+      alert('설정 저장 중 오류가 발생했습니다.');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleImageUpload = async () => {
+    if (!imageFile) {
+      alert('업로드할 이미지를 선택해주세요.');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      // 파일 크기 체크 (5MB 제한)
+      if (imageFile.size > 5 * 1024 * 1024) {
+        alert('이미지 파일 크기는 5MB 이하여야 합니다.');
+        setUploadingImage(false);
+        return;
+      }
+
+      // 파일 확장자 체크
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(imageFile.type)) {
+        alert('지원되는 이미지 형식: JPG, PNG, GIF, WebP');
+        setUploadingImage(false);
+        return;
+      }
+
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `hope-image-${Date.now()}.${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('ad-images')
+        .upload(fileName, imageFile);
+
+      if (uploadError) {
+        console.error('이미지 업로드 실패:', uploadError);
+        alert('이미지 업로드 실패: ' + uploadError.message);
+        setUploadingImage(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('ad-images')
+        .getPublicUrl(fileName);
+
+      setMainPageSettings(prev => ({ ...prev, hopeImage: urlData.publicUrl }));
+      setImageFile(null);
+      alert('이미지가 업로드되었습니다!');
+    } catch (error) {
+      console.error('이미지 업로드 오류:', error);
+      alert('이미지 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
     }
   };
 
@@ -383,7 +521,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* 빠른 액션 */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-8">
           <h2 className="text-lg font-bold text-gray-900 mb-4">빠른 액션</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link 
@@ -430,6 +568,115 @@ export default function AdminDashboard() {
                 <div className="text-sm text-purple-600">통계 업데이트</div>
               </div>
             </button>
+          </div>
+        </div>
+
+        {/* 메인 페이지 설정 */}
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">메인 페이지 설정</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-md font-semibold text-gray-800 mb-3">희망 메시지 이미지</h3>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <img 
+                    src={mainPageSettings.hopeImage} 
+                    alt="현재 이미지" 
+                    className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                    onError={(e) => {
+                      e.currentTarget.src = '/globe.svg';
+                    }}
+                  />
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={mainPageSettings.hopeImage}
+                      onChange={(e) => setMainPageSettings(prev => ({ ...prev, hopeImage: e.target.value }))}
+                      placeholder="/your-image.jpg"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      이미지 파일을 public 폴더에 넣고 경로를 입력하거나, 아래에서 파일을 업로드하세요
+                    </p>
+                  </div>
+                </div>
+                
+                {/* 파일 업로드 섹션 */}
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">파일 업로드</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageFileChange}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <button
+                        onClick={handleImageUpload}
+                        disabled={!imageFile || uploadingImage}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        {uploadingImage ? '업로드 중...' : '업로드'}
+                      </button>
+                    </div>
+                    {imageFile && (
+                      <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <span>선택된 파일:</span>
+                        <span className="font-medium">{imageFile.name}</span>
+                        <span className="text-gray-400">({(imageFile.size / 1024 / 1024).toFixed(2)}MB)</span>
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      지원 형식: JPG, PNG, GIF, WebP (최대 5MB) • GIF 파일도 업로드 가능합니다!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-md font-semibold text-gray-800 mb-3">희망 메시지</h3>
+              <div className="space-y-4">
+                <textarea
+                  value={mainPageSettings.hopeMessage}
+                  onChange={(e) => setMainPageSettings(prev => ({ ...prev, hopeMessage: e.target.value }))}
+                  placeholder="희망 메시지를 입력하세요..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                />
+                <p className="text-xs text-gray-500">
+                  줄바꿈은 \n으로 표시됩니다. 예: "희망은 언제나 가까이에 있습니다.\n함께 힘내요!"
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={saveMainPageSettings}
+              disabled={savingSettings}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingSettings ? '저장 중...' : '설정 저장'}
+            </button>
+          </div>
+
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <h4 className="text-sm font-semibold text-gray-800 mb-2">미리보기</h4>
+            <div className="bg-white rounded-lg p-4 border border-gray-200 max-w-xs">
+              <img 
+                src={mainPageSettings.hopeImage} 
+                alt="희망 이미지" 
+                className="w-16 h-16 mx-auto mb-3 opacity-80"
+                onError={(e) => {
+                  e.currentTarget.src = '/globe.svg';
+                }}
+              />
+              <p className="text-xs text-gray-500 text-center whitespace-pre-line">
+                {mainPageSettings.hopeMessage}
+              </p>
+            </div>
           </div>
         </div>
       </div>

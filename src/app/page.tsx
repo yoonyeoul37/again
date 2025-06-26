@@ -15,34 +15,29 @@ const ads = [
   { id: "ad1", type: "AD", title: "[AD] 좌파들을 이길 수 있는 필승 전략", nickname: "익명", date: "2024-06-22", views: 6968, likes: 0 },
 ];
 
-// 지역별 광고 데이터 (기본값)
-const regionAds = {
-  '송파구': { image: '/ad-songpa.jpg', text: '송파구 법무사 무료상담 ☎ 02-1234-5678' },
-  '강남구': { image: '/ad-gangnam.jpg', text: '강남구 법무사 무료상담 ☎ 02-2345-6789' },
-  default: { image: '/001.jpg', text: '전국 법무사 무료상담 ☎ 1588-0000' }
-};
-
 function useRegionAd() {
-  const [ad, setAd] = useState(regionAds.default);
+  const [ad, setAd] = useState(null); // 기본값 null
   const [actualAds, setActualAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<string>('');
 
   useEffect(() => {
-    // 실제 광고 데이터 가져오기
+    // 실제 광고 데이터 가져오기 (실전 서비스 방식)
     async function fetchAds() {
       try {
+        const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabase
           .from('ads')
           .select('*')
           .eq('status', 'active')
-          .gte('start_date', new Date().toISOString().split('T')[0])
-          .lte('end_date', new Date().toISOString().split('T')[0])
+          .gte('start_date', today)
+          .lte('end_date', today)
           .order('created_at', { ascending: false });
-
         if (error) {
           console.error('광고 로드 실패:', error);
         } else {
           setActualAds(data || []);
+          console.log('실전 조건 광고:', data);
         }
       } catch (error) {
         console.error('광고 로드 중 오류:', error);
@@ -50,48 +45,135 @@ function useRegionAd() {
         setLoading(false);
       }
     }
-
     fetchAds();
   }, []);
 
+  // IP 기반 위치 감지 (무료 API)
+  const getLocationByIP = async () => {
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      const data = await response.json();
+      console.log('IP 기반 위치:', data);
+      return data.city || data.region || '';
+    } catch (error) {
+      console.log('IP 기반 위치 감지 실패:', error);
+      return '';
+    }
+  };
+
+  // 위치 기반 광고 매칭
+  const matchLocationToAd = (location: string) => {
+    console.log('사용자 위치:', location);
+    
+    // 실제 광고 데이터에서 위치 매칭
+    if (actualAds.length > 0) {
+      const matchingAd = actualAds.find(ad => {
+        if (ad.ad_type === 'major') {
+          // 대도시 전체 광고 매칭
+          const majorCityMap: { [key: string]: string[] } = {
+            'seoul': ['서울', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
+            'busan': ['부산', '강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
+            'daegu': ['대구', '남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
+            'incheon': ['인천', '계양구', '남구', '남동구', '동구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
+            'daejeon': ['대전', '대덕구', '동구', '서구', '유성구', '중구'],
+            'gwangju': ['광주', '광산구', '남구', '동구', '북구', '서구'],
+            'ulsan': ['울산', '남구', '동구', '북구', '울주군', '중구'],
+            'sejong': ['세종', '세종특별자치시']
+          };
+          
+          const cityRegions = majorCityMap[ad.major_city || ''] || [];
+          return cityRegions.some(region => location.includes(region));
+        } else if (ad.ad_type === 'regional' && ad.regions) {
+          // 중소도시/군 선택 광고 매칭
+          const regionMap: { [key: string]: string } = {
+            'suwon': '수원시', 'seongnam': '성남시', 'bucheon': '부천시', 'ansan': '안산시',
+            'anyang': '안양시', 'pyeongtaek': '평택시', 'dongducheon': '동두천시',
+            'uijeongbu': '의정부시', 'goyang': '고양시', 'gwangmyeong': '광명시',
+            'gwangju_gyeonggi': '광주시', 'yongin': '용인시', 'paju': '파주시',
+            'icheon': '이천시', 'anseong': '안성시', 'gimpo': '김포시',
+            'hwaseong': '화성시', 'yangju': '양주시', 'pocheon': '포천시',
+            'yeoju': '여주시', 'gapyeong': '가평군', 'yangpyeong': '양평군',
+            'yeoncheon': '연천군'
+          };
+          
+          return ad.regions.some(region => {
+            const regionName = regionMap[region] || region;
+            return location.includes(regionName);
+          });
+        }
+        return false;
+      });
+      
+      if (matchingAd) {
+        console.log('매칭된 광고:', matchingAd);
+        return {
+          image: matchingAd.image_url || '',
+          text: `${matchingAd.title} - ${matchingAd.phone}`,
+          advertiser: matchingAd.advertiser
+        };
+      }
+    }
+    
+    // 매칭되는 광고가 없으면 null 반환
+    return null;
+  };
+
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      // 카카오 REST API Key 필요! 아래 YOUR_REST_API_KEY를 발급받은 키로 교체하세요.
-      const res = await fetch(
-        `https://dapi.kakao.com/v2/local/geo/coord2regioncode.json?x=${longitude}&y=${latitude}`,
-        { headers: { Authorization: 'KakaoAK YOUR_REST_API_KEY' } }
-      );
-      const data = await res.json();
-      const regionName = data.documents?.[0]?.region_2depth_name || '';
-      setAd(regionAds[regionName] || regionAds.default);
-    }, () => {
-      setAd(regionAds.default);
-    });
-  }, []);
+    const detectLocation = async () => {
+      // 1. 브라우저 Geolocation 시도
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          console.log('GPS 위치:', latitude, longitude);
+          
+          // 임시로 하드코딩된 위치 매핑 (개발용)
+          let detectedLocation = '';
+          if (latitude > 37.5 && latitude < 37.7 && longitude > 126.9 && longitude < 127.1) {
+            detectedLocation = '강남구'; // 서울 강남구 근처
+          } else if (latitude > 37.4 && latitude < 37.6 && longitude > 126.7 && longitude < 126.9) {
+            detectedLocation = '송파구'; // 서울 송파구 근처
+          } else {
+            detectedLocation = '서울'; // 기본값
+          }
+          
+          setUserLocation(detectedLocation);
+          const matchedAd = matchLocationToAd(detectedLocation);
+          setAd(matchedAd);
+        }, async (error) => {
+          console.log('GPS 위치 감지 실패:', error);
+          // 2. IP 기반 위치 감지로 폴백
+          const ipLocation = await getLocationByIP();
+          setUserLocation(ipLocation);
+          const matchedAd = matchLocationToAd(ipLocation);
+          setAd(matchedAd);
+        });
+      } else {
+        // 3. IP 기반 위치 감지
+        const ipLocation = await getLocationByIP();
+        setUserLocation(ipLocation);
+        const matchedAd = matchLocationToAd(ipLocation);
+        setAd(matchedAd);
+      }
+    };
 
-  return { ad, actualAds, loading };
-}
+    detectLocation();
+  }, [actualAds]);
 
-const PAGE_SIZE = 20;
-
-function isNew(created_at: string) {
-  const today = new Date();
-  const created = new Date(created_at);
-  return (
-    created.getFullYear() === today.getFullYear() &&
-    created.getMonth() === today.getMonth() &&
-    created.getDate() === today.getDate()
-  );
+  return { ad, actualAds, loading, userLocation };
 }
 
 export default function HomePage() {
+  const { ad, actualAds, loading, userLocation } = useRegionAd();
   const [posts, setPosts] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [mounted, setMounted] = useState(false);
-  const { ad, actualAds, loading } = useRegionAd();
+  const [mainPageSettings, setMainPageSettings] = useState({
+    hopeImage: '/globe.svg',
+    hopeMessage: '희망은 언제나 가까이에 있습니다.\n함께 힘내요!'
+  });
+
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     setMounted(true);
@@ -102,7 +184,33 @@ export default function HomePage() {
       }
     }
     fetchPosts();
+    fetchMainPageSettings();
   }, []);
+
+  const fetchMainPageSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('key', 'main_page_hope')
+        .single();
+
+      if (error) {
+        // 테이블이 없거나 데이터가 없는 경우 기본값 사용
+        console.log('설정을 불러올 수 없어 기본값을 사용합니다:', error.message);
+        return;
+      }
+
+      if (data) {
+        setMainPageSettings({
+          hopeImage: data.hope_image || '/globe.svg',
+          hopeMessage: data.hope_message || '희망은 언제나 가까이에 있습니다.\n함께 힘내요!'
+        });
+      }
+    } catch (error) {
+      console.log('설정 불러오기 중 오류 발생, 기본값 사용:', error);
+    }
+  };
 
   // 카테고리별 필터링 함수
   const getFilteredPosts = () => {
@@ -114,6 +222,11 @@ export default function HomePage() {
       return posts.filter(post => post.category === selectedCategory);
     }
   };
+
+  // 공지글과 일반글 분리 및 정렬 (실제 posts 데이터 기준)
+  const noticePosts = posts.filter(post => post.isNotice);
+  const normalPosts = posts.filter(post => !post.isNotice);
+  const sortedPosts = [...noticePosts, ...normalPosts];
 
   const filteredPosts = getFilteredPosts();
   const totalPages = Math.ceil(filteredPosts.length / PAGE_SIZE);
@@ -128,49 +241,157 @@ export default function HomePage() {
   // 베스트글 테스트
   const bestPosts = samplePosts.filter(post => post.likes >= 10);
 
-  // 공지글과 일반글 분리 및 정렬
-  const noticePosts = samplePosts.filter(post => post.isNotice);
-  const normalPosts = samplePosts.filter(post => !post.isNotice);
-  const sortedPosts = [...noticePosts, ...normalPosts];
-
-  // 실제 광고 중에서 랜덤하게 선택
+  // 실제 광고 중에서 랜덤하게 선택 (실전 서비스 방식)
   const getRandomAd = () => {
     if (actualAds.length === 0) return null;
     const randomIndex = Math.floor(Math.random() * actualAds.length);
     return actualAds[randomIndex];
   };
-
   const randomAd = getRandomAd();
+
+  // 개발용 위치 테스트 함수
+  const testLocation = (location: string) => {
+    console.log('테스트 위치:', location);
+    const matchedAd = actualAds.find(ad => {
+      if (ad.ad_type === 'major') {
+        const majorCityMap: { [key: string]: string[] } = {
+          'seoul': ['서울', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
+          'busan': ['부산', '강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
+          'daegu': ['대구', '남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
+          'incheon': ['인천', '계양구', '남구', '남동구', '동구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
+          'daejeon': ['대전', '대덕구', '동구', '서구', '유성구', '중구'],
+          'gwangju': ['광주', '광산구', '남구', '동구', '북구', '서구'],
+          'ulsan': ['울산', '남구', '동구', '북구', '울주군', '중구'],
+          'sejong': ['세종', '세종특별자치시']
+        };
+        const cityRegions = majorCityMap[ad.major_city || ''] || [];
+        return cityRegions.some(region => location.includes(region));
+      } else if (ad.ad_type === 'regional' && ad.regions) {
+        const regionMap: { [key: string]: string } = {
+          'suwon': '수원시', 'seongnam': '성남시', 'bucheon': '부천시', 'ansan': '안산시',
+          'anyang': '안양시', 'pyeongtaek': '평택시', 'dongducheon': '동두천시',
+          'uijeongbu': '의정부시', 'goyang': '고양시', 'gwangmyeong': '광명시',
+          'gwangju_gyeonggi': '광주시', 'yongin': '용인시', 'paju': '파주시',
+          'icheon': '이천시', 'anseong': '안성시', 'gimpo': '김포시',
+          'hwaseong': '화성시', 'yangju': '양주시', 'pocheon': '포천시',
+          'yeoju': '여주시', 'gapyeong': '가평군', 'yangpyeong': '양평군',
+          'yeoncheon': '연천군'
+        };
+        return ad.regions.some(region => {
+          const regionName = regionMap[region] || region;
+          return location.includes(regionName);
+        });
+      }
+      return false;
+    });
+    
+    if (matchedAd) {
+      console.log('매칭된 광고:', matchedAd);
+    } else {
+      console.log('매칭되는 광고 없음');
+    }
+  };
+
+  function isNew(created_at: string) {
+    const today = new Date();
+    const created = new Date(created_at);
+    return (
+      created.getFullYear() === today.getFullYear() &&
+      created.getMonth() === today.getMonth() &&
+      created.getDate() === today.getDate()
+    );
+  }
+
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-gray-50" style={{fontFamily: `'Malgun Gothic', '맑은 고딕', Dotum, '돋움', Arial, Helvetica, sans-serif`}}>
+      {/* 상단 로그인/회원가입 버튼 */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-end items-center h-16">
+            <div className="flex items-center space-x-4">
+              <Link href="/login" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
+                로그인
+              </Link>
+              <Link href="/signup" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                회원가입
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 상단 네비게이션/로고/메뉴/글쓰기 버튼 완전 삭제 */}
 
       {/* 메인 바로가기 버튼 삭제됨 */}
+
+      {/* 위치 정보 표시 (개발용) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="text-sm font-medium text-blue-900 mb-2">🔍 위치 기반 광고 테스트 (개발용)</h3>
+          <div className="text-sm text-blue-800 mb-3">
+            <strong>감지된 위치:</strong> {userLocation || '감지 중...'}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => testLocation('강남구')}
+              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              강남구 테스트
+            </button>
+            <button
+              onClick={() => testLocation('송파구')}
+              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              송파구 테스트
+            </button>
+            <button
+              onClick={() => testLocation('수원시')}
+              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              수원시 테스트
+            </button>
+            <button
+              onClick={() => testLocation('부산')}
+              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              부산 테스트
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 게시글 표 */}
       <main className="mx-auto mt-8 mb-12" style={{maxWidth: '1200px'}}>
         {/* 리스트 위 배너 광고 (위치기반) */}
         <div className="mb-6">
           {!loading && randomAd ? (
-            // 실제 광고주가 등록한 광고
+            // 실제 광고주가 등록한 광고 (실전 서비스 방식)
             <div className="w-full relative overflow-hidden rounded-xl shadow-lg">
               {randomAd.image_url ? (
-                <div
-                  className="w-full h-48 bg-cover bg-center relative"
-                  style={{
-                    backgroundImage: `url('${randomAd.image_url}')`,
-                  }}
-                >
-                  <div className="absolute inset-0 bg-black/50" />
-                  <div className="relative z-10 flex flex-col items-center justify-center h-full py-8 text-white text-center">
-                    <h3 className="text-2xl font-bold drop-shadow-lg mb-2">{randomAd.title}</h3>
-                    <p className="text-lg drop-shadow-lg mb-2">{randomAd.description}</p>
-                    <div className="text-sm drop-shadow-lg">
-                      {randomAd.advertiser} | ☎ {randomAd.phone}
-                    </div>
+                randomAd.website ? (
+                  <a 
+                    href={randomAd.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block w-full h-48 bg-cover bg-center relative hover:opacity-90 transition-opacity"
+                    style={{
+                      backgroundImage: `url('${randomAd.image_url}')`,
+                    }}
+                  >
+                    {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
+                  </a>
+                ) : (
+                  <div
+                    className="w-full h-48 bg-cover bg-center relative"
+                    style={{
+                      backgroundImage: `url('${randomAd.image_url}')`,
+                    }}
+                  >
+                    {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
                   </div>
-                </div>
+                )
               ) : (
                 <div className="w-full h-48 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg flex items-center justify-center">
                   <div className="text-white text-center">
@@ -183,13 +404,13 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-          ) : (
+          ) :
             // 기본 지역별 광고
             mounted && (
               <div
                 className="w-full relative overflow-hidden rounded-xl shadow-lg"
                 style={{
-                  backgroundImage: `url('${ad.image}')`,
+                  backgroundImage: `url('${ad?.image || ''}')`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   minHeight: '200px'
@@ -197,11 +418,11 @@ export default function HomePage() {
               >
                 <div className="absolute inset-0 bg-black/50" />
                 <div className="relative z-10 flex flex-col items-center justify-center h-full py-12 text-white text-center">
-                  <span className="text-3xl font-bold drop-shadow-lg">{ad.text}</span>
+                  <span className="text-3xl font-bold drop-shadow-lg">{ad?.text || ''}</span>
                 </div>
               </div>
             )
-          )}
+          }
         </div>
         
         {/* 2단 레이아웃: 게시판 + 카테고리 정보 */}
@@ -474,12 +695,12 @@ export default function HomePage() {
               </div>
               {/* 공지글 */}
               {noticePosts.map((post) => (
-                <div key={post.id} className="flex items-center border-b border-gray-200 text-xs bg-blue-50 font-bold text-blue-700">
+                <div key={post.id} className="flex items-center border-b border-gray-200 text-xs bg-red-50 font-bold text-red-700">
                   <div className="w-16 text-center py-2">공지</div>
-                  <div className="w-24 text-center py-2"><span className="bg-blue-600 text-white px-2 py-1 rounded text-xs">공지</span></div>
+                  <div className="w-24 text-center py-2"><span className="bg-red-500 text-white px-2 py-1 rounded text-xs">공지</span></div>
                   <div className="flex-1 text-left pl-4 flex items-center gap-2 min-w-0">
                     <div className="flex-1 min-w-0 flex items-center">
-                      <Link href={`/post/${post.id}`} className="truncate font-medium hover:text-blue-600 transition-colors text-xs text-gray-900 block max-w-full">
+                      <Link href={`/post/${post.id}`} className="truncate font-medium hover:text-red-600 transition-colors text-xs text-gray-900 block max-w-full">
                         {post.title}
                         {post.images && post.images.length > 0 && (
                           <span className="ml-1 text-gray-400 text-xs">
@@ -488,7 +709,7 @@ export default function HomePage() {
                         )}
                         {isNew(post.created_at) && <span className="ml-1 text-[8px] text-red-500 font-normal align-middle">NEW</span>}
                         {post.comment_count > 0 && (
-                          <span className="ml-2 text-blue-400 text-[11px] align-middle">
+                          <span className="ml-2 text-red-400 text-[11px] align-middle">
                             <FontAwesomeIcon icon={faComment} className="mr-1" />{post.comment_count}
                           </span>
                         )}
@@ -568,8 +789,10 @@ export default function HomePage() {
             <div className="space-y-6">
               {/* 예시 이미지 및 안내 */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center">
-                <img src="/globe.svg" alt="희망 이미지" className="w-24 h-24 mb-4 opacity-80" />
-                <p className="text-xs text-gray-500 text-center">희망은 언제나 가까이에 있습니다.<br/>함께 힘내요!</p>
+                {/* 이미지 변경 방법: public 폴더에 이미지를 넣고 아래 src 경로를 변경하세요 */}
+                {/* 예: src="/your-image.jpg" 또는 src="/your-image.png" */}
+                <img src={mainPageSettings.hopeImage} alt="희망 이미지" className="w-24 h-24 mb-4 opacity-80" />
+                <p className="text-xs text-gray-500 text-center whitespace-pre-line">{mainPageSettings.hopeMessage}</p>
               </div>
               {/* 사이드바 광고 */}
               <AdSlot position="sidebar" />

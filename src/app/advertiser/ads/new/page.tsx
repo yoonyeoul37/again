@@ -180,6 +180,7 @@ export default function NewAdvertiserAdPage() {
     advertiser: '',
     phone: '',
     email: '',
+    website: '',
     title: '',
     description: '',
     startDate: '',
@@ -192,6 +193,12 @@ export default function NewAdvertiserAdPage() {
   useEffect(() => {
     console.log('user:', user, 'isLoading:', isLoading);
   }, [user, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'advertiser')) {
+      router.replace('/');
+    }
+  }, [user, isLoading, router]);
 
   // 가격 계산
   const calculatePrice = () => {
@@ -270,6 +277,7 @@ export default function NewAdvertiserAdPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('광고 등록 시 user:', user);
     if (contractDays < 30) {
       alert('광고 계약 기간은 최소 30일(한 달) 이상이어야 합니다.');
       return;
@@ -284,6 +292,12 @@ export default function NewAdvertiserAdPage() {
     }
     setIsSubmitting(true);
     try {
+      console.log('광고 등록 시 user:', user);
+      if (!user.id) {
+        alert('로그인 정보에 문제가 있습니다. 다시 로그인해 주세요.');
+        setIsSubmitting(false);
+        return;
+      }
       let imageUrl = null;
       if (formData.image) {
         const fileExt = formData.image.name.split('.').pop();
@@ -312,6 +326,7 @@ export default function NewAdvertiserAdPage() {
           advertiser: formData.advertiser,
           phone: formData.phone,
           email: formData.email,
+          website: formData.website,
           title: formData.title,
           description: formData.description,
           start_date: formData.startDate,
@@ -321,6 +336,7 @@ export default function NewAdvertiserAdPage() {
           regions: adType === 'regional' ? selectedRegions : null,
           created_at: new Date().toISOString(),
           image_url: imageUrl,
+          status: 'active',
         }
       ]);
       if (error) {
@@ -408,6 +424,19 @@ export default function NewAdvertiserAdPage() {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="예: contact@law.com"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  웹사이트 URL
+                </label>
+                <input
+                  type="url"
+                  name="website"
+                  value={formData.website}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="예: https://www.lawfirm.com"
                 />
               </div>
             </div>

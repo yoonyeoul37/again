@@ -3,11 +3,19 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/AuthProvider';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function MyAdsPage() {
   const { user, isLoading } = useAuth();
+  const router = useRouter();
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'advertiser')) {
+      router.replace('/');
+    }
+  }, [user, isLoading, router]);
 
   useEffect(() => {
     if (!user) return;
@@ -182,6 +190,31 @@ export default function MyAdsPage() {
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {ad.ad_type === 'major' ? '대도시 전체' : '지역 선택'}
                       </span>
+                    </div>
+                    {/* 수정/삭제 버튼 */}
+                    <div className="mt-4 flex gap-2">
+                      <Link
+                        href={`/advertiser/ads/edit/${ad.id}`}
+                        className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm font-medium"
+                      >
+                        수정
+                      </Link>
+                      <button
+                        onClick={async () => {
+                          if (confirm('정말 이 광고를 삭제하시겠습니까?')) {
+                            const { error } = await supabase.from('ads').delete().eq('id', ad.id);
+                            if (error) {
+                              alert('삭제 실패: ' + error.message);
+                            } else {
+                              setAds(prev => prev.filter((item: any) => item.id !== ad.id));
+                              alert('광고가 삭제되었습니다.');
+                            }
+                          }
+                        }}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium"
+                      >
+                        삭제
+                      </button>
                     </div>
                   </div>
                 </div>

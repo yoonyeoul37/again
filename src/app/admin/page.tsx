@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // 광고주 데이터 타입
 interface AdvertiserData {
@@ -29,6 +30,7 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 
 export default function AdminPage() {
   const { user, isLoading } = useAuth();
+  const router = useRouter();
   const [advertisers, setAdvertisers] = useState<AdvertiserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -39,6 +41,12 @@ export default function AdminPage() {
     if (!user) return;
     fetchAdvertisers();
   }, [user]);
+
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== 'admin')) {
+      router.replace('/');
+    }
+  }, [user, isLoading, router]);
 
   const fetchAdvertisers = async () => {
     setLoading(true);
