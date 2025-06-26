@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 
 // 대도시 데이터 (전체 지역 광고)
 const majorCities = [
@@ -175,7 +176,7 @@ const regions = [
 // 지역 카테고리 목록
 const categories = ['경기도', '강원도', '충청북도', '충청남도', '전라북도', '전라남도', '경상북도', '경상남도', '제주도'];
 
-export default function NewAdPage() {
+export default function AdminNewAdPage() {
   const router = useRouter();
   const [adType, setAdType] = useState<'major' | 'regional'>('major');
   const [selectedMajorCity, setSelectedMajorCity] = useState('seoul');
@@ -277,11 +278,56 @@ export default function NewAdPage() {
     }
     setIsSubmitting(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let imageUrl = null;
+      if (formData.image) {
+        const fileExt = formData.image.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('ad-images')
+          .upload(fileName, formData.image);
+        if (uploadError) {
+          console.error('이미지 업로드 실패:', uploadError);
+          alert('이미지 업로드 실패: ' + uploadError.message);
+          setIsSubmitting(false);
+          return;
+        } else {
+          console.log('이미지 업로드 성공:', uploadData);
+          const { data: urlData } = supabase.storage
+            .from('ad-images')
+            .getPublicUrl(fileName);
+          imageUrl = urlData.publicUrl;
+          console.log('이미지 공개 URL:', imageUrl);
+        }
+      }
+
+      // 관리자가 광고 등록 (advertiser_id는 null로 설정)
+      const { data, error } = await supabase.from('ads').insert([
+        {
+          advertiser_id: null, // 관리자가 등록한 광고는 advertiser_id를 null로 설정
+          advertiser: formData.advertiser,
+          phone: formData.phone,
+          email: formData.email,
+          title: formData.title,
+          description: formData.description,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          ad_type: adType,
+          major_city: adType === 'major' ? selectedMajorCity : null,
+          regions: adType === 'regional' ? selectedRegions : null,
+          status: 'approved', // 관리자가 등록한 광고는 바로 승인 상태로 설정
+          created_at: new Date().toISOString(),
+          image_url: imageUrl,
+        }
+      ]);
+      if (error) {
+        alert('광고 등록 실패: ' + error.message);
+        return;
+      }
       alert('광고가 성공적으로 등록되었습니다!');
       router.push('/admin/ads');
     } catch (error) {
       alert('광고 등록 중 오류가 발생했습니다.');
+      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -301,7 +347,8 @@ export default function NewAdPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-900">새 광고 등록</h1>
+              <h1 className="text-2xl font-bold text-gray-900">관리자 광고 등록</h1>
+              <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">관리자 등록</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/admin/ads" className="text-gray-600 hover:text-gray-700 text-sm font-medium">
@@ -604,7 +651,7 @@ export default function NewAdPage() {
             </div>
             <div className="mt-4 p-4 bg-blue-100 rounded-lg">
               <p className="text-sm text-blue-800">
-                💡 결제는 계약 승인 후 별도로 진행됩니다. 계약 승인 시 담당자가 연락드립니다.
+                💡 관리자가 등록한 광고는 자동으로 승인 상태로 등록됩니다.
               </p>
             </div>
           </div>

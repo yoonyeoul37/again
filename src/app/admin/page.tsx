@@ -1,9 +1,21 @@
 "use client";
-import { useState } from "react";
-import { sampleAds } from "@/data/sampleData";
-import { Ad } from "@/types";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/components/AuthProvider";
+import Link from "next/link";
 
-const PAGE_SIZE = 5;
+// 광고주 데이터 타입
+interface AdvertiserData {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
+}
+
+const PAGE_SIZE = 10;
 
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   if (!message) return null;
@@ -15,177 +27,320 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   );
 }
 
-function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      className={`w-11 h-6 flex items-center rounded-full transition-colors duration-200 ${checked ? 'bg-blue-500' : 'bg-gray-300'}`}
-      onClick={() => onChange(!checked)}
-      aria-checked={checked}
-      role="switch"
-    >
-      <span
-        className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-1'}`}
-      />
-    </button>
-  );
-}
-
 export default function AdminPage() {
-  const [ads, setAds] = useState<Ad[]>(sampleAds);
+  const { user, isLoading } = useAuth();
+  const [advertisers, setAdvertisers] = useState<AdvertiserData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [modalAd, setModalAd] = useState<Ad | null>(null);
+  const [updatingAdvertiser, setUpdatingAdvertiser] = useState<string | null>(null);
 
-  // 페이징 계산
-  const totalPages = Math.ceil(ads.length / PAGE_SIZE);
-  const paginatedAds = ads.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  useEffect(() => {
+    if (!user) return;
+    fetchAdvertisers();
+  }, [user]);
 
-  // 광고 삭제
-  const handleDelete = (id: string) => {
-    if (window.confirm("정말 삭제하시겠습니까?")) {
-      setAds(prev => prev.filter(ad => ad.id !== id));
-      setToast("광고가 삭제되었습니다.");
+  const fetchAdvertisers = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('advertisers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('광고주 데이터 가져오기 실패:', error);
+        alert('광고주 데이터를 불러오는데 실패했습니다.');
+      } else {
+        setAdvertisers(data || []);
+      }
+    } catch (error) {
+      console.error('광고주 데이터 가져오기 오류:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 광고 노출여부 토글
-  const handleToggleActive = (id: string) => {
-    setAds(prev => prev.map(ad => ad.id === id ? { ...ad, isActive: !ad.isActive, updatedAt: new Date().toISOString() } : ad));
-    setToast("광고 노출 상태가 변경되었습니다.");
-  };
+  // 광고주 상태 업데이트
+  const updateAdvertiserStatus = async (advertiserId: string, newStatus: string) => {
+    setUpdatingAdvertiser(advertiserId);
+    try {
+      const { error } = await supabase
+        .from('advertisers')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', advertiserId);
 
-  // 광고 추가/수정 모달 열기
-  const openModal = (ad?: Ad) => {
-    setModalAd(ad ?? null);
-    setShowModal(true);
-  };
-  const closeModal = () => setShowModal(false);
-
-  // 광고 추가/수정 (간단 폼)
-  const handleModalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const id = modalAd?.id || `ad${Date.now()}`;
-    const newAd: Ad = {
-      id,
-      position: formData.get("position") as any,
-      code: formData.get("code") as string,
-      isActive: formData.get("isActive") === "on",
-      createdAt: modalAd?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setAds(prev => {
-      const exists = prev.find(a => a.id === id);
-      if (exists) {
-        return prev.map(a => a.id === id ? newAd : a);
+      if (error) {
+        console.error('광고주 상태 업데이트 실패:', error);
+        alert('광고주 상태 업데이트에 실패했습니다.');
       } else {
-        return [newAd, ...prev];
+        // 로컬 상태 업데이트
+        setAdvertisers(prev => prev.map(advertiser => 
+          advertiser.id === advertiserId ? { ...advertiser, status: newStatus as any, updated_at: new Date().toISOString() } : advertiser
+        ));
+        setToast('광고주 상태가 업데이트되었습니다.');
       }
-    });
-    setShowModal(false);
-    setToast(modalAd ? "광고가 수정되었습니다." : "광고가 추가되었습니다.");
+    } catch (error) {
+      console.error('광고주 상태 업데이트 오류:', error);
+      alert('광고주 상태 업데이트 중 오류가 발생했습니다.');
+    } finally {
+      setUpdatingAdvertiser(null);
+    }
   };
+
+  // 광고주 삭제
+  const deleteAdvertiser = async (advertiserId: string) => {
+    if (!window.confirm('정말 이 광고주를 삭제하시겠습니까? 관련된 모든 광고도 함께 삭제됩니다.')) return;
+
+    try {
+      const { error } = await supabase
+        .from('advertisers')
+        .delete()
+        .eq('id', advertiserId);
+
+      if (error) {
+        console.error('광고주 삭제 실패:', error);
+        alert('광고주 삭제에 실패했습니다.');
+      } else {
+        setAdvertisers(prev => prev.filter(advertiser => advertiser.id !== advertiserId));
+        setToast('광고주가 삭제되었습니다.');
+      }
+    } catch (error) {
+      console.error('광고주 삭제 오류:', error);
+      alert('광고주 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 페이징 계산
+  const totalPages = Math.ceil(advertisers.length / PAGE_SIZE);
+  const paginatedAdvertisers = advertisers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'approved': return '승인됨';
+      case 'rejected': return '거부됨';
+      case 'pending': return '대기중';
+      default: return '알 수 없음';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ko-KR');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 임시로 로그인 체크 비활성화
+  // if (!user) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <p className="text-gray-600">로그인이 필요합니다.</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <Toast message={toast} onClose={() => setToast("")} />
-      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">광고 관리</h1>
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-gray-600">총 {ads.length}개 광고</span>
-          <button onClick={() => openModal()} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">+ 광고 추가</button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
-            <thead className="bg-blue-50">
-              <tr>
-                <th className="py-2 px-3 font-bold text-gray-700">번호</th>
-                <th className="py-2 px-3 font-bold text-gray-700">위치</th>
-                <th className="py-2 px-3 font-bold text-gray-700">상태</th>
-                <th className="py-2 px-3 font-bold text-gray-700">미리보기</th>
-                <th className="py-2 px-3 font-bold text-gray-700">관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedAds.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center text-gray-400 py-8">광고가 없습니다.</td>
-                </tr>
-              ) : (
-                paginatedAds.map((ad, idx) => (
-                  <tr key={ad.id} className="border-b last:border-b-0 transition hover:bg-blue-50/60 group">
-                    <td className="py-2 px-3 text-center">{(page - 1) * PAGE_SIZE + idx + 1}</td>
-                    <td className="py-2 px-3 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold transition ${ad.position === 'content' ? 'bg-blue-100 text-blue-700' : ad.position === 'sidebar' ? 'bg-yellow-100 text-yellow-700' : 'bg-pink-100 text-pink-700'}`}>
-                        {ad.position === 'content' && <span>📰</span>}
-                        {ad.position === 'sidebar' && <span>📌</span>}
-                        {ad.position === 'bottom' && <span>⬇️</span>}
-                        {ad.position}
-                      </span>
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <Switch checked={ad.isActive} onChange={() => handleToggleActive(ad.id)} />
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <div className="inline-block transition group-hover:scale-105 group-hover:ring-2 group-hover:ring-blue-200 rounded-md" dangerouslySetInnerHTML={{ __html: ad.code }} />
-                    </td>
-                    <td className="py-2 px-3 text-center">
-                      <button onClick={() => openModal(ad)} className="text-xs text-blue-600 hover:underline px-2 py-1 rounded-full font-semibold transition">수정</button>
-                      <button className="text-xs text-red-500 hover:underline px-2 py-1 rounded-full font-semibold transition" onClick={() => handleDelete(ad.id)}>삭제</button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {/* 페이징 */}
-        <div className="flex justify-center gap-2 mt-6">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
-            <button
-              key={num}
-              onClick={() => setPage(num)}
-              className={`px-3 py-1 rounded-full text-sm font-semibold border transition ${page === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
-            >
-              {num}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* 광고 추가/수정 모달 */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md animate-fade-in-up relative">
-            <button onClick={closeModal} className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-xl">×</button>
-            <h2 className="text-lg font-bold mb-4">{modalAd ? '광고 수정' : '광고 추가'}</h2>
-            <form onSubmit={handleModalSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">위치</label>
-                <select name="position" defaultValue={modalAd?.position || 'content'} className="w-full border rounded px-3 py-2">
-                  <option value="content">content</option>
-                  <option value="sidebar">sidebar</option>
-                  <option value="bottom">bottom</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">광고 코드(HTML)</label>
-                <textarea name="code" defaultValue={modalAd?.code || ''} className="w-full border rounded px-3 py-2" rows={3} required />
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" name="isActive" id="isActive" defaultChecked={modalAd?.isActive ?? true} />
-                <label htmlFor="isActive" className="text-sm">노출</label>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={closeModal} className="px-4 py-2 rounded bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition">취소</button>
-                <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 transition">저장</button>
-              </div>
-            </form>
+      <div className="max-w-6xl mx-auto bg-white rounded-xl shadow p-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">광고주 관리</h1>
+          <div className="flex items-center space-x-4">
+            <Link href="/admin/dashboard" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+              대시보드로
+            </Link>
+            <Link href="/admin/ads" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+              광고 관리
+            </Link>
           </div>
         </div>
-      )}
+        
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-gray-600">총 {advertisers.length}명의 광고주</span>
+          <button 
+            onClick={fetchAdvertisers}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
+            새로고침
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">광고주 데이터를 불러오는 중...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+              <thead className="bg-blue-50">
+                <tr>
+                  <th className="py-3 px-4 font-bold text-gray-700 text-left">번호</th>
+                  <th className="py-3 px-4 font-bold text-gray-700 text-left">광고주명</th>
+                  <th className="py-3 px-4 font-bold text-gray-700 text-left">연락처</th>
+                  <th className="py-3 px-4 font-bold text-gray-700 text-left">이메일</th>
+                  <th className="py-3 px-4 font-bold text-gray-700 text-left">상태</th>
+                  <th className="py-3 px-4 font-bold text-gray-700 text-left">가입일</th>
+                  <th className="py-3 px-4 font-bold text-gray-700 text-left">관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedAdvertisers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center text-gray-400 py-8">등록된 광고주가 없습니다.</td>
+                  </tr>
+                ) : (
+                  paginatedAdvertisers.map((advertiser, idx) => (
+                    <tr key={advertiser.id} className="border-b last:border-b-0 transition hover:bg-blue-50/60 group">
+                      <td className="py-3 px-4 text-center">{(page - 1) * PAGE_SIZE + idx + 1}</td>
+                      <td className="py-3 px-4">
+                        <div className="font-medium text-gray-900">{advertiser.name}</div>
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">{advertiser.phone || '-'}</td>
+                      <td className="py-3 px-4 text-gray-700">{advertiser.email}</td>
+                      <td className="py-3 px-4">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(advertiser.status)}`}>
+                          {getStatusText(advertiser.status)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">{formatDate(advertiser.created_at)}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex space-x-2">
+                          {advertiser.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => updateAdvertiserStatus(advertiser.id, 'approved')}
+                                disabled={updatingAdvertiser === advertiser.id}
+                                className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded-full font-semibold transition disabled:opacity-50"
+                              >
+                                {updatingAdvertiser === advertiser.id ? '처리중...' : '승인'}
+                              </button>
+                              <button
+                                onClick={() => updateAdvertiserStatus(advertiser.id, 'rejected')}
+                                disabled={updatingAdvertiser === advertiser.id}
+                                className="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded-full font-semibold transition disabled:opacity-50"
+                              >
+                                {updatingAdvertiser === advertiser.id ? '처리중...' : '거부'}
+                              </button>
+                            </>
+                          )}
+                          {advertiser.status === 'approved' && (
+                            <button
+                              onClick={() => updateAdvertiserStatus(advertiser.id, 'rejected')}
+                              disabled={updatingAdvertiser === advertiser.id}
+                              className="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded-full font-semibold transition disabled:opacity-50"
+                            >
+                              {updatingAdvertiser === advertiser.id ? '처리중...' : '거부'}
+                            </button>
+                          )}
+                          {advertiser.status === 'rejected' && (
+                            <button
+                              onClick={() => updateAdvertiserStatus(advertiser.id, 'approved')}
+                              disabled={updatingAdvertiser === advertiser.id}
+                              className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded-full font-semibold transition disabled:opacity-50"
+                            >
+                              {updatingAdvertiser === advertiser.id ? '처리중...' : '승인'}
+                            </button>
+                          )}
+                          <button 
+                            className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded-full font-semibold transition" 
+                            onClick={() => deleteAdvertiser(advertiser.id)}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 페이징 */}
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-6">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
+              <button
+                key={num}
+                onClick={() => setPage(num)}
+                className={`px-3 py-1 rounded-full text-sm font-semibold border transition ${page === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* 통계 카드 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div className="bg-blue-50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600">총 광고주</p>
+                <p className="text-2xl font-bold text-blue-900">{advertisers.length}</p>
+              </div>
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-yellow-50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-yellow-600">승인 대기</p>
+                <p className="text-2xl font-bold text-yellow-900">{advertisers.filter(a => a.status === 'pending').length}</p>
+              </div>
+              <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-green-50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600">승인됨</p>
+                <p className="text-2xl font-bold text-green-900">{advertisers.filter(a => a.status === 'approved').length}</p>
+              </div>
+              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 

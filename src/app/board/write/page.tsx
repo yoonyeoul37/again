@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PostFormData } from '@/types';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function WritePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [formData, setFormData] = useState<PostFormData>({
     title: '',
     content: '',
@@ -18,6 +20,7 @@ export default function WritePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreview, setImagePreview] = useState<string[]>([]);
+  const [isNotice, setIsNotice] = useState(false);
 
   const bannedWords = [
     "법무사", "변호사", "사무소", "사무실", "로펌", "법률", "법률사무소",
@@ -129,7 +132,8 @@ export default function WritePage() {
           created_at: new Date().toISOString(),
           comment_count: 0,
           images: imageUrls.join(','),
-          password: formData.password
+          password: formData.password,
+          ...(user?.role === 'admin' ? { isNotice } : {})
         }
       ]);
       
@@ -316,6 +320,18 @@ export default function WritePage() {
                 )}
               </div>
             </div>
+
+            {/* 공지로 등록 (관리자만) */}
+            {user?.role === 'admin' && (
+              <label className="flex items-center gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  checked={isNotice}
+                  onChange={e => setIsNotice(e.target.checked)}
+                />
+                공지로 등록
+              </label>
+            )}
 
             {/* 가이드라인 */}
             <div className="bg-blue-50 border border-blue-100 rounded-md p-4 text-xs text-gray-700">

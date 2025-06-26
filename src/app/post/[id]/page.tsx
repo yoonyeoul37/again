@@ -9,6 +9,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faComment } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '@/lib/supabaseClient';
 import AdSlot from '@/components/AdSlot';
+import { useAuth } from '@/components/AuthProvider';
 
 // 지역별 광고 데이터 (메인 페이지와 동일)
 const regionAds = {
@@ -74,6 +75,7 @@ export default function PostDetailPage() {
   const router = useRouter();
   const postId = params.id as string;
   const { ad, actualAds, loading } = useRegionAd();
+  const { user } = useAuth(); // 관리자 권한 확인용
 
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -359,6 +361,64 @@ export default function PostDetailPage() {
 
   const randomAd = getRandomAd();
 
+  // 관리자용 게시글 삭제 함수
+  const handleAdminDeletePost = async () => {
+    if (!user || user.role !== 'admin') return;
+    
+    if (confirm('관리자 권한으로 이 게시글을 삭제하시겠습니까?')) {
+      try {
+        const { error } = await supabase
+          .from('posts')
+          .delete()
+          .eq('id', postId);
+
+        if (error) {
+          console.error('게시글 삭제 실패:', error);
+          alert('게시글 삭제 중 오류가 발생했습니다.');
+        } else {
+          alert('게시글이 삭제되었습니다.');
+          router.push('/board');
+        }
+      } catch (error) {
+        console.error('게시글 삭제 중 오류:', error);
+        alert('게시글 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
+  // 관리자용 댓글 삭제 함수
+  const handleAdminDeleteComment = async (commentId: string) => {
+    if (!user || user.role !== 'admin') return;
+    
+    if (confirm('관리자 권한으로 이 댓글을 삭제하시겠습니까?')) {
+      try {
+        const { error } = await supabase
+          .from('comments')
+          .delete()
+          .eq('id', commentId);
+
+        if (error) {
+          console.error('댓글 삭제 실패:', error);
+          alert('댓글 삭제 중 오류가 발생했습니다.');
+        } else {
+          // 댓글 개수 감소
+          await supabase
+            .from('posts')
+            .update({ comment_count: Math.max((post?.comment_count || 0) - 1, 0) })
+            .eq('id', postId);
+          
+          // UI 업데이트
+          setComments(prev => prev.filter(c => c.id !== commentId));
+          setPost(prev => prev ? { ...prev, comment_count: Math.max((prev.comment_count || 0) - 1, 0) } : prev);
+          alert('댓글이 삭제되었습니다.');
+        }
+      } catch (error) {
+        console.error('댓글 삭제 중 오류:', error);
+        alert('댓글 삭제 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
   function renderCommentsFlat() {
     // 재귀적으로 댓글을 렌더링하는 함수
     const renderComment = (comment: Comment, depth: number = 0) => {
@@ -382,6 +442,16 @@ export default function PostDetailPage() {
               <button onClick={() => handleReplyClick(comment.id)} className="text-xs text-gray-500 hover:underline px-1 py-0.5">답글</button>
               <button onClick={() => handleEditComment(comment.id, comment.content)} className="text-xs text-gray-500 hover:underline px-1 py-0.5">수정</button>
               <button onClick={() => handleDeleteComment(comment.id)} className="text-xs text-gray-500 hover:underline px-1 py-0.5">삭제</button>
+              {/* 관리자용 댓글 삭제 버튼 */}
+              {user?.role === 'admin' && (
+                <button 
+                  onClick={() => handleAdminDeleteComment(comment.id)} 
+                  className="text-xs text-red-600 hover:text-red-800 font-bold px-1 py-0.5 border border-red-300 rounded"
+                  title="관리자 삭제"
+                >
+                  🗑️
+                </button>
+              )}
             </div>
           </div>
           {comment.isEditing ? (
@@ -561,6 +631,16 @@ export default function PostDetailPage() {
                     >
                       삭제
                     </button>
+                    {/* 관리자용 게시글 삭제 버튼 */}
+                    {user?.role === 'admin' && (
+                      <button
+                        onClick={handleAdminDeletePost}
+                        className="px-3 py-1.5 bg-red-700 text-white rounded-md hover:bg-red-800 transition-colors text-xs font-medium border-2 border-red-300"
+                        title="관리자 삭제"
+                      >
+                        🗑️ 관리자삭제
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -815,6 +895,10 @@ export default function PostDetailPage() {
                       </Link>
                     ))}
                 </div>
+              </div>
+              {/* 구글 광고 자리 */}
+              <div className="mt-6">
+                <AdSlot position="sidebar" />
               </div>
             </div>
           </div>

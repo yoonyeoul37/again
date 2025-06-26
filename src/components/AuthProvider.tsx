@@ -16,18 +16,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session.then(async ({ data }) => {
       if (data.session) {
         const { user: supaUser } = data.session;
-        setUser({
-          id: supaUser.id,
-          email: supaUser.email,
-          role: 'advertiser', // 필요시 실제 role 조회
-          name: supaUser.user_metadata?.name || ''
-        });
-        localStorage.setItem('user', JSON.stringify({
-          id: supaUser.id,
-          email: supaUser.email,
-          role: 'advertiser',
-          name: supaUser.user_metadata?.name || ''
-        }));
+        // users 테이블에서 role 조회
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('id, email, role, name')
+          .eq('email', supaUser.email)
+          .single();
+        if (userRow) {
+          setUser(userRow as User);
+          localStorage.setItem('user', JSON.stringify(userRow));
+        } else {
+          setUser({
+            id: supaUser.id,
+            email: supaUser.email,
+            role: 'user',
+            name: supaUser.user_metadata?.name || ''
+          });
+          localStorage.setItem('user', JSON.stringify({
+            id: supaUser.id,
+            email: supaUser.email,
+            role: 'user',
+            name: supaUser.user_metadata?.name || ''
+          }));
+        }
       }
       setIsLoading(false);
     });

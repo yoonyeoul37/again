@@ -1,99 +1,118 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/components/AuthProvider';
 
 // 광고 데이터 타입
 interface AdData {
   id: string;
+  advertiser_id: string;
   advertiser: string;
-  region: string;
-  title: string;
-  description: string;
-  imageUrl: string;
   phone: string;
   email: string;
-  startDate: string;
-  endDate: string;
-  status: 'active' | 'inactive' | 'pending';
-  price: number;
-  impressions: number;
-  clicks: number;
+  title: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  ad_type: 'major' | 'regional';
+  major_city: string | null;
+  regions: string[] | null;
+  image_url: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
 }
 
-// 샘플 광고 데이터
-const sampleAds: AdData[] = [
-  {
-    id: '1',
-    advertiser: '강남법무사',
-    region: '서울 전체 (25개 구)',
-    title: '강남법무사 무료상담',
-    description: '개인회생, 개인파산 전문 상담',
-    imageUrl: '/ad-gangnam.jpg',
-    phone: '02-1234-5678',
-    email: 'gangnam@law.com',
-    startDate: '2024-01-01',
-    endDate: '2024-12-31',
-    status: 'active',
-    price: 110000,
-    impressions: 1250,
-    clicks: 45
-  },
-  {
-    id: '2',
-    advertiser: '송파변호사',
-    region: '서울 전체 (25개 구)',
-    title: '송파변호사 무료상담',
-    description: '부채문제 해결 전문',
-    imageUrl: '/ad-songpa.jpg',
-    phone: '02-2345-6789',
-    email: 'songpa@law.com',
-    startDate: '2024-01-15',
-    endDate: '2024-12-31',
-    status: 'active',
-    price: 110000,
-    impressions: 980,
-    clicks: 32
-  },
-  {
-    id: '3',
-    advertiser: '부산법무사',
-    region: '부산 전체 (16개 구/군)',
-    title: '부산법무사 무료상담',
-    description: '부산지역 개인회생 전문',
-    imageUrl: '/ad-busan.jpg',
-    phone: '051-3456-7890',
-    email: 'busan@law.com',
-    startDate: '2024-02-01',
-    endDate: '2024-12-31',
-    status: 'pending',
-    price: 88000,
-    impressions: 0,
-    clicks: 0
-  },
-  {
-    id: '4',
-    advertiser: '군지역법무사',
-    region: '기타 군 지역',
-    title: '군지역법무사 무료상담',
-    description: '군지역 부채상담',
-    imageUrl: '/ad-gun.jpg',
-    phone: '031-0000-0000',
-    email: 'gun@law.com',
-    startDate: '2024-03-01',
-    endDate: '2024-12-31',
-    status: 'pending',
-    price: 55000,
-    impressions: 0,
-    clicks: 0
-  }
-];
-
 export default function AdminAdsPage() {
-  const [ads, setAds] = useState<AdData[]>(sampleAds);
+  const { user, isLoading } = useAuth();
+  const [ads, setAds] = useState<AdData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [updatingAd, setUpdatingAd] = useState<string | null>(null);
+
+  // 광고 데이터 가져오기
+  useEffect(() => {
+    if (!user) return;
+    fetchAds();
+  }, [user]);
+
+  const fetchAds = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('ads')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('광고 데이터 가져오기 실패:', error);
+        alert('광고 데이터를 불러오는데 실패했습니다.');
+      } else {
+        setAds(data || []);
+      }
+    } catch (error) {
+      console.error('광고 데이터 가져오기 오류:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 광고 상태 업데이트
+  const updateAdStatus = async (adId: string, newStatus: string) => {
+    setUpdatingAd(adId);
+    try {
+      const { error } = await supabase
+        .from('ads')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', adId);
+
+      if (error) {
+        console.error('광고 상태 업데이트 실패:', error);
+        alert('광고 상태 업데이트에 실패했습니다.');
+      } else {
+        // 로컬 상태 업데이트
+        setAds(prev => prev.map(ad => 
+          ad.id === adId ? { ...ad, status: newStatus as any, updated_at: new Date().toISOString() } : ad
+        ));
+        alert('광고 상태가 업데이트되었습니다.');
+      }
+    } catch (error) {
+      console.error('광고 상태 업데이트 오류:', error);
+      alert('광고 상태 업데이트 중 오류가 발생했습니다.');
+    } finally {
+      setUpdatingAd(null);
+    }
+  };
+
+  // 광고 삭제
+  const deleteAd = async (adId: string) => {
+    if (!window.confirm('정말 이 광고를 삭제하시겠습니까?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('ads')
+        .delete()
+        .eq('id', adId);
+
+      if (error) {
+        console.error('광고 삭제 실패:', error);
+        alert('광고 삭제에 실패했습니다.');
+      } else {
+        setAds(prev => prev.filter(ad => ad.id !== adId));
+        alert('광고가 삭제되었습니다.');
+      }
+    } catch (error) {
+      console.error('광고 삭제 오류:', error);
+      alert('광고 삭제 중 오류가 발생했습니다.');
+    }
+  };
 
   // 지역 카테고리 목록
   const regionCategories = [
@@ -101,8 +120,11 @@ export default function AdminAdsPage() {
     { value: 'seoul', label: '서울' },
     { value: 'busan', label: '부산' },
     { value: 'daegu', label: '대구' },
+    { value: 'incheon', label: '인천' },
+    { value: 'daejeon', label: '대전' },
     { value: 'gwangju', label: '광주' },
     { value: 'ulsan', label: '울산' },
+    { value: 'sejong', label: '세종' },
     { value: 'gyeonggi', label: '경기도' },
     { value: 'gangwon', label: '강원도' },
     { value: 'chungbuk', label: '충청북도' },
@@ -116,9 +138,12 @@ export default function AdminAdsPage() {
 
   const filteredAds = ads.filter(ad => {
     const matchesStatus = selectedStatus === 'all' || ad.status === selectedStatus;
-    const matchesRegion = selectedRegion === 'all' || ad.region.toLowerCase().includes(selectedRegion);
+    const matchesRegion = selectedRegion === 'all' || 
+      (ad.ad_type === 'major' && ad.major_city?.includes(selectedRegion)) ||
+      (ad.ad_type === 'regional' && ad.regions?.some(r => r.includes(selectedRegion)));
     const matchesSearch = ad.advertiser.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         ad.region.toLowerCase().includes(searchTerm.toLowerCase());
+                         ad.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         ad.email.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesRegion && matchesSearch;
   });
 
@@ -127,6 +152,8 @@ export default function AdminAdsPage() {
       case 'active': return 'bg-green-100 text-green-800';
       case 'inactive': return 'bg-red-100 text-red-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'approved': return 'bg-blue-100 text-blue-800';
+      case 'rejected': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -136,6 +163,8 @@ export default function AdminAdsPage() {
       case 'active': return '활성';
       case 'inactive': return '비활성';
       case 'pending': return '대기중';
+      case 'approved': return '승인됨';
+      case 'rejected': return '거부됨';
       default: return '알 수 없음';
     }
   };
@@ -146,6 +175,70 @@ export default function AdminAdsPage() {
       currency: 'KRW'
     }).format(amount);
   };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ko-KR');
+  };
+
+  const getRegionText = (ad: AdData) => {
+    if (ad.ad_type === 'major') {
+      const majorCities: { [key: string]: string } = {
+        'seoul': '서울 전체 (25개 구)',
+        'busan': '부산 전체 (16개 구/군)',
+        'daegu': '대구 전체 (8개 구/군)',
+        'incheon': '인천 전체 (10개 구/군)',
+        'daejeon': '대전 전체 (5개 구)',
+        'gwangju': '광주 전체 (5개 구)',
+        'ulsan': '울산 전체 (5개 구/군)',
+        'sejong': '세종특별자치시'
+      };
+      return majorCities[ad.major_city || ''] || ad.major_city;
+    } else {
+      return ad.regions?.join(', ') || '지역 미선택';
+    }
+  };
+
+  // 가격 계산 (광고주 페이지와 동일한 로직)
+  const calculatePrice = (ad: AdData) => {
+    if (ad.ad_type === 'major') {
+      const majorCityPrices: { [key: string]: number } = {
+        'seoul': 110000,
+        'busan': 88000,
+        'daegu': 88000,
+        'incheon': 88000,
+        'daejeon': 88000,
+        'gwangju': 88000,
+        'ulsan': 88000,
+        'sejong': 88000
+      };
+      return majorCityPrices[ad.major_city || ''] || 0;
+    } else {
+      // 중소도시/군은 55,000원
+      return 55000;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 임시로 로그인 체크 비활성화
+  // if (!user) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <p className="text-gray-600">로그인이 필요합니다.</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50" style={{fontFamily: `'Malgun Gothic', '맑은 고딕', Dotum, '돋움', Arial, Helvetica, sans-serif`}}>
@@ -188,6 +281,20 @@ export default function AdminAdsPage() {
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm font-medium text-gray-600">승인 대기</p>
+                <p className="text-3xl font-bold text-yellow-600">{ads.filter(ad => ad.status === 'pending').length}</p>
+              </div>
+              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm font-medium text-gray-600">활성 광고</p>
                 <p className="text-3xl font-bold text-green-600">{ads.filter(ad => ad.status === 'active').length}</p>
               </div>
@@ -202,27 +309,14 @@ export default function AdminAdsPage() {
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">총 노출</p>
-                <p className="text-3xl font-bold text-purple-600">{ads.reduce((sum, ad) => sum + ad.impressions, 0).toLocaleString()}</p>
+                <p className="text-sm font-medium text-gray-600">총 수익</p>
+                <p className="text-3xl font-bold text-purple-600">
+                  {formatCurrency(ads.reduce((sum, ad) => sum + calculatePrice(ad), 0))}
+                </p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">총 클릭</p>
-                <p className="text-3xl font-bold text-orange-600">{ads.reduce((sum, ad) => sum + ad.clicks, 0).toLocaleString()}</p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.122 2.122" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                 </svg>
               </div>
             </div>
@@ -231,127 +325,204 @@ export default function AdminAdsPage() {
 
         {/* 필터 및 검색 */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6">
-          {/* 지역 필터 */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">지역별 필터</label>
-            <div className="flex flex-wrap gap-2">
-              {regionCategories.map(category => (
-                <button
-                  key={category.value}
-                  type="button"
-                  onClick={() => setSelectedRegion(category.value)}
-                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    selectedRegion === category.value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="광고주명 또는 지역으로 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">상태</label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">전체 상태</option>
+                <option value="pending">대기중</option>
+                <option value="approved">승인됨</option>
+                <option value="rejected">거부됨</option>
                 <option value="active">활성</option>
                 <option value="inactive">비활성</option>
-                <option value="pending">대기중</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">지역</label>
+              <select
+                value={selectedRegion}
+                onChange={(e) => setSelectedRegion(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {regionCategories.map(category => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">검색</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="광고주명, 제목, 이메일"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={fetchAds}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                새로고침
+              </button>
             </div>
           </div>
         </div>
 
         {/* 광고 목록 */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">광고주</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">지역</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">광고 제목</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">계약 기간</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">수익</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">성과</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredAds.map((ad) => (
-                  <tr key={ad.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{ad.advertiser}</div>
-                        <div className="text-sm text-gray-500">{ad.phone}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{ad.region}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{ad.title}</div>
-                        <div className="text-sm text-gray-500">{ad.description}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(ad.status)}`}>
-                        {getStatusText(ad.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>{ad.startDate} ~ {ad.endDate}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(ad.price)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div>노출: {ad.impressions.toLocaleString()}</div>
-                        <div>클릭: {ad.clicks.toLocaleString()}</div>
-                        <div className="text-xs text-gray-500">
-                          CTR: {ad.impressions > 0 ? ((ad.clicks / ad.impressions) * 100).toFixed(2) : '0'}%
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900">수정</button>
-                        <button className="text-red-600 hover:text-red-900">삭제</button>
-                      </div>
-                    </td>
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">광고 목록 ({filteredAds.length}개)</h2>
+          </div>
+          
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">광고 데이터를 불러오는 중...</p>
+            </div>
+          ) : filteredAds.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              조건에 맞는 광고가 없습니다.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      광고주 정보
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      지역
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      광고 내용
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      상태
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      계약 기간
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      월 요금
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      관리
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredAds.map((ad) => (
+                    <tr key={ad.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{ad.advertiser}</div>
+                          <div className="text-sm text-gray-500">{ad.phone}</div>
+                          <div className="text-sm text-gray-500">{ad.email}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-900">{getRegionText(ad)}</span>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {ad.ad_type === 'major' ? '대도시 전체' : '중소도시/군 선택'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{ad.title}</div>
+                          <div className="text-sm text-gray-500">{ad.description}</div>
+                          {ad.image_url && (
+                            <div className="mt-2">
+                              <img 
+                                src={ad.image_url} 
+                                alt="광고 이미지" 
+                                className="w-16 h-12 object-cover rounded border"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(ad.status)}`}>
+                          {getStatusText(ad.status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div>{formatDate(ad.start_date)} ~ {formatDate(ad.end_date)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatCurrency(calculatePrice(ad))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="space-y-2">
+                          {ad.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => updateAdStatus(ad.id, 'approved')}
+                                disabled={updatingAd === ad.id}
+                                className="block w-full px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {updatingAd === ad.id ? '처리중...' : '승인'}
+                              </button>
+                              <button
+                                onClick={() => updateAdStatus(ad.id, 'rejected')}
+                                disabled={updatingAd === ad.id}
+                                className="block w-full px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 disabled:opacity-50"
+                              >
+                                {updatingAd === ad.id ? '처리중...' : '거부'}
+                              </button>
+                            </>
+                          )}
+                          {ad.status === 'approved' && (
+                            <button
+                              onClick={() => updateAdStatus(ad.id, 'active')}
+                              disabled={updatingAd === ad.id}
+                              className="block w-full px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {updatingAd === ad.id ? '처리중...' : '활성화'}
+                            </button>
+                          )}
+                          {ad.status === 'active' && (
+                            <button
+                              onClick={() => updateAdStatus(ad.id, 'inactive')}
+                              disabled={updatingAd === ad.id}
+                              className="block w-full px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 disabled:opacity-50"
+                            >
+                              {updatingAd === ad.id ? '처리중...' : '비활성화'}
+                            </button>
+                          )}
+                          {ad.status === 'inactive' && (
+                            <button
+                              onClick={() => updateAdStatus(ad.id, 'active')}
+                              disabled={updatingAd === ad.id}
+                              className="block w-full px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                            >
+                              {updatingAd === ad.id ? '처리중...' : '활성화'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteAd(ad.id)}
+                            className="block w-full px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-
-        {filteredAds.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-500 text-lg">등록된 광고가 없습니다.</div>
-            <Link href="/admin/ads/new" className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              첫 번째 광고 등록하기
-            </Link>
-          </div>
-        )}
       </div>
     </div>
   );
