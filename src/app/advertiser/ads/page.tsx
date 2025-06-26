@@ -63,6 +63,37 @@ export default function MyAdsPage() {
     }
   };
 
+  // 광고 지역 정보를 표시하는 함수
+  const getAdLocationText = (ad: any) => {
+    if (ad.ad_type === 'major') {
+      const majorCityMap: { [key: string]: string } = {
+        'seoul': '서울 전체 (25개 구)',
+        'busan': '부산 전체 (16개 구/군)',
+        'daegu': '대구 전체 (8개 구/군)',
+        'incheon': '인천 전체 (10개 구/군)',
+        'daejeon': '대전 전체 (5개 구)',
+        'gwangju': '광주 전체 (5개 구)',
+        'ulsan': '울산 전체 (5개 구/군)',
+        'sejong': '세종특별자치시'
+      };
+      return majorCityMap[ad.major_city] || '대도시 전체';
+    } else if (ad.ad_type === 'regional' && ad.regions) {
+      const regionMap: { [key: string]: string } = {
+        'suwon': '수원시', 'seongnam': '성남시', 'bucheon': '부천시', 'ansan': '안산시',
+        'anyang': '안양시', 'pyeongtaek': '평택시', 'dongducheon': '동두천시',
+        'uijeongbu': '의정부시', 'goyang': '고양시', 'gwangmyeong': '광명시',
+        'gwangju_gyeonggi': '광주시', 'yongin': '용인시', 'paju': '파주시',
+        'icheon': '이천시', 'anseong': '안성시', 'gimpo': '김포시',
+        'hwaseong': '화성시', 'yangju': '양주시', 'pocheon': '포천시',
+        'yeoju': '여주시', 'gapyeong': '가평군', 'yangpyeong': '양평군',
+        'yeoncheon': '연천군'
+      };
+      const regionNames = ad.regions.map((region: string) => regionMap[region] || region);
+      return regionNames.join(', ');
+    }
+    return '지역 미지정';
+  };
+
   if (loading || isLoading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
@@ -188,7 +219,7 @@ export default function MyAdsPage() {
                     {/* 광고 타입 */}
                     <div className="mt-3">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {ad.ad_type === 'major' ? '대도시 전체' : '지역 선택'}
+                        {getAdLocationText(ad)}
                       </span>
                     </div>
                     {/* 수정/삭제 버튼 */}

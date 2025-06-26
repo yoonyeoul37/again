@@ -193,9 +193,21 @@ export default function AdminAdsPage() {
         'sejong': '세종특별자치시'
       };
       return majorCities[ad.major_city || ''] || ad.major_city;
-    } else {
-      return ad.regions?.join(', ') || '지역 미선택';
+    } else if (ad.ad_type === 'regional' && ad.regions) {
+      const regionMap: { [key: string]: string } = {
+        'suwon': '수원시', 'seongnam': '성남시', 'bucheon': '부천시', 'ansan': '안산시',
+        'anyang': '안양시', 'pyeongtaek': '평택시', 'dongducheon': '동두천시',
+        'uijeongbu': '의정부시', 'goyang': '고양시', 'gwangmyeong': '광명시',
+        'gwangju_gyeonggi': '광주시', 'yongin': '용인시', 'paju': '파주시',
+        'icheon': '이천시', 'anseong': '안성시', 'gimpo': '김포시',
+        'hwaseong': '화성시', 'yangju': '양주시', 'pocheon': '포천시',
+        'yeoju': '여주시', 'gapyeong': '가평군', 'yangpyeong': '양평군',
+        'yeoncheon': '연천군'
+      };
+      const regionNames = ad.regions.map((region: string) => regionMap[region] || region);
+      return regionNames.join(', ');
     }
+    return '지역 미지정';
   };
 
   // 가격 계산 (광고주 페이지와 동일한 로직)
