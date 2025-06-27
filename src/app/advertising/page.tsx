@@ -19,6 +19,18 @@ export default function AdvertisingPage() {
           </p>
         </div>
 
+        {/* 광고 이미지 등록 가이드라인 */}
+        <div className="mb-10 p-6 bg-blue-50 border border-blue-200 rounded-xl text-[#222] text-base shadow-sm">
+          <strong className="block text-lg text-blue-700 mb-2">[광고 이미지 등록 안내]</strong>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>권장 사이즈: <span className="font-semibold">728 x 90px (가로 배너)</span></li>
+            <li>파일 형식: JPG, PNG</li>
+            <li>파일 크기: 1MB 이하</li>
+            <li>배너는 <span className="font-semibold">가로로 긴 형태(728x90px)</span>로 제작해 주세요.</li>
+            <li className="text-red-500">권장 사이즈와 다를 경우, 이미지가 잘리거나 빈 공간이 생길 수 있습니다.</li>
+          </ul>
+        </div>
+
         {/* 통계 섹션 */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
           <div className="bg-white rounded border border-gray-200 p-8 text-center">

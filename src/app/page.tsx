@@ -173,6 +173,7 @@ export default function HomePage() {
     hopeImage: '/globe.svg',
     hopeMessage: '희망은 언제나 가까이에 있습니다.\n함께 힘내요!'
   });
+  const [customBanners, setCustomBanners] = useState<{image_url: string, link: string}[]>([]);
 
   const PAGE_SIZE = 20;
 
@@ -186,6 +187,16 @@ export default function HomePage() {
     }
     fetchPosts();
     fetchMainPageSettings();
+    async function fetchBanners() {
+      const { data, error } = await supabase
+        .from("custom_banners")
+        .select("image_url, link, slot_number")
+        .order("slot_number");
+      if (data) {
+        setCustomBanners(data.filter(b => b.image_url));
+      }
+    }
+    fetchBanners();
   }, []);
 
   // 광고 데이터가 로드될 때마다 상단 광고 랜덤 선택
@@ -747,6 +758,22 @@ export default function HomePage() {
           {/* 오른쪽: 사이드바 광고 */}
           <div className="w-80 flex-shrink-0">
             <div className="space-y-6">
+              {/* DB에서 불러온 광고 배너들 (최대 2개) */}
+              {customBanners.length > 0 && customBanners.map((banner, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center overflow-hidden h-36"
+                  style={{ width: '100%', padding: 0 }}
+                >
+                  <a href={banner.link || '#'} target="_blank" rel="noopener noreferrer" className="w-full h-full block">
+                    <img
+                      src={banner.image_url}
+                      alt={`광고 배너${idx+1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
+                </div>
+              ))}
               {/* 예시 이미지 및 안내 */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center">
                 {/* 이미지 변경 방법: public 폴더에 이미지를 넣고 아래 src 경로를 변경하세요 */}
@@ -756,7 +783,6 @@ export default function HomePage() {
               </div>
               {/* 사이드바 광고 */}
               <AdSlot position="sidebar" />
-              
               {/* 카테고리 안내 */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-200 pb-3">카테고리 안내</h3>

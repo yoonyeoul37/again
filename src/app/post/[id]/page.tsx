@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { samplePosts, sampleComments } from '@/data/sampleData';
 import { Post, Comment, CommentFormData } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment, faImage, faEye, faThumbsUp as faRegularThumbsUp, faUserPen, faTrash, faNoteSticky } from '@fortawesome/free-solid-svg-icons';
+import { faComment, faImage, faEye, faThumbsUp as faRegularThumbsUp, faUserPen, faTrash, faNoteSticky, faUser, faCamera } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '@/lib/supabaseClient';
 import AdSlot from '@/components/AdSlot';
 import { useAuth } from '@/components/AuthProvider';
@@ -153,6 +153,10 @@ export default function PostDetailPage() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
+  const [boardPosts, setBoardPosts] = useState<any[]>([]);
+  const [boardPage, setBoardPage] = useState(1);
+  const [selectedCategory, setSelectedCategory] = useState('전체');
+
   useEffect(() => {
     async function fetchPosts() {
       const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
@@ -168,6 +172,24 @@ export default function PostDetailPage() {
   const sortedPosts = [...noticePosts, ...normalPosts];
   const totalPages = Math.ceil(sortedPosts.length / PAGE_SIZE);
   const paginatedPosts = sortedPosts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    async function fetchBoardPosts() {
+      const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
+      if (!error && data) {
+        setBoardPosts(data);
+      }
+    }
+    fetchBoardPosts();
+  }, []);
+
+  const getFilteredBoardPosts = () => {
+    if (selectedCategory === '전체') return boardPosts;
+    return boardPosts.filter(post => post.category === selectedCategory);
+  };
+  const filteredBoardPosts = getFilteredBoardPosts();
+  const totalBoardPages = Math.ceil(filteredBoardPosts.length / PAGE_SIZE);
+  const paginatedBoardPosts = filteredBoardPosts.slice((boardPage - 1) * PAGE_SIZE, boardPage * PAGE_SIZE);
 
   function isNew(created_at: string) {
     const today = new Date();
@@ -573,7 +595,10 @@ export default function PostDetailPage() {
           <div className="flex-1">
             <div className="flex items-center justify-between gap-2 mb-1">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm" style={{ color: '#FF8C00', fontWeight: 'normal' }}>{comment.nickname}</span>
+                <span className="text-sm flex items-center gap-1" style={{ color: '#00bcd4', fontWeight: 'normal' }}>
+                  <FontAwesomeIcon icon={faUser} className="text-gray-400 text-xs" />
+                  {comment.nickname}
+                </span>
                 {depth > 0 && parent && <span className="text-blue-600 text-xs ml-1">@{parent.nickname}</span>}
                 <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">{new Date(comment.created_at).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\./g, '.').replace(/\s/g, '')}</span>
               </div>
@@ -667,8 +692,8 @@ export default function PostDetailPage() {
             {renderCommentTree(comment)}
             {idx !== topLevel.length - 1 && (
               <div
-                className="absolute left-4 right-4"
-                style={{ borderBottom: '1px dashed #b2b2b2', top: '100%' }}
+                className="absolute"
+                style={{ borderBottom: '1px dotted #b2b2b2', top: '100%', left: '-2px', right: '-2px' }}
               />
             )}
           </div>
@@ -821,6 +846,95 @@ export default function PostDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* 메인 게시판 테이블 (메인과 동일) */}
+            <div className="mt-10">
+              {/* 카테고리 필터 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
+                <div className="flex gap-2 items-center flex-wrap justify-between">
+                  <div className="flex gap-2 items-center flex-wrap min-w-0 flex-1 justify-center">
+                    {['전체','개인회생','개인파산','법인회생','법인파산','워크아웃','신용회복위원회','대출관련','신용카드','신용점수','회생절차','상환계획','법무사상담','변호사상담','회생비용','파산비용','면책결정','신용회복','인가결정','셀프신청','개인신청','취업'].map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => { setSelectedCategory(cat); setBoardPage(1); }}
+                        className={`h-8 px-3 py-1 rounded-lg text-xs font-medium border transition-all duration-200 whitespace-nowrap ${selectedCategory === cat ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-50 hover:border-blue-300'}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* 글쓰기 버튼 */}
+              <div className="flex justify-end mb-4">
+                <Link href="/board/write" className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md">글쓰기</Link>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                {/* 표 헤더 */}
+                <div className="flex items-center bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-700">
+                  <div className="w-16 text-center py-3">번호</div>
+                  <div className="w-24 text-center py-3">말머리</div>
+                  <div className="flex-1 flex items-center py-3 justify-center"><span>제목</span></div>
+                  <div className="w-28 text-center py-3">닉네임</div>
+                  <div className="w-24 text-center py-3">날짜</div>
+                  <div className="w-20 text-center py-3">조회수</div>
+                  <div className="w-20 text-center py-3">힘내</div>
+                </div>
+                {/* 일반글 */}
+                {paginatedBoardPosts.length === 0 ? (
+                  <div className="py-12 text-center text-gray-400 text-lg">게시글이 없습니다.</div>
+                ) : (
+                  paginatedBoardPosts.map((post, idx) => (
+                    <div
+                      key={post.id}
+                      className={`flex items-center border-b border-gray-100 text-xs hover:bg-blue-50 cursor-pointer transition-colors duration-200 group ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                    >
+                      <div className="w-16 text-center text-gray-500 py-2">{(boardPage - 1) * PAGE_SIZE + idx + 1}</div>
+                      <div className="w-24 text-center py-2">
+                        <span className="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">{post.category}</span>
+                      </div>
+                      <div className="flex-1 text-left pl-4 min-w-0 py-2 flex items-center gap-2">
+                        <div className="flex-1 min-w-0 flex items-center">
+                          <Link href={`/post/${post.id}`} className="truncate font-medium group-hover:text-blue-600 transition-colors text-xs text-gray-900 block max-w-full">
+                            {post.title}
+                            {post.images && post.images.length > 0 && (
+                              <span className="ml-1 text-gray-400 text-xs">
+                                <FontAwesomeIcon icon={faImage} />
+                              </span>
+                            )}
+                            {isNew(post.created_at) && <span className="ml-1 text-[8px] text-red-500 font-normal align-middle">NEW</span>}
+                            {post.comment_count > 0 && (
+                              <span className="ml-2 text-blue-400 text-[11px] align-middle">
+                                <FontAwesomeIcon icon={faComment} className="mr-1" />{post.comment_count}
+                              </span>
+                            )}
+                          </Link>
+                        </div>
+                      </div>
+                      <div className="w-28 text-center font-normal truncate text-xs text-gray-700 py-2">{post.nickname}</div>
+                      <div className="w-24 text-center text-gray-500 font-normal text-xs py-2">
+                        <div className="text-gray-400 text-xs">{post.created_at ? new Date(post.created_at).getFullYear() : ''}</div>
+                        <div>{post.created_at ? (() => { const d = new Date(post.created_at); return `${d.getMonth() + 1}.${d.getDate()}`; })() : ''}</div>
+                      </div>
+                      <div className="w-20 text-center text-gray-500 font-normal text-xs py-2">{post.view_count ?? 0}</div>
+                      <div className="w-20 text-center text-orange-600 font-semibold text-xs py-2">{post.likes ?? 0}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+              {/* 페이지네이션 */}
+              <div className="flex justify-center gap-2 mt-8">
+                {Array.from({ length: totalBoardPages }, (_, i) => i + 1).map(num => (
+                  <button
+                    key={num}
+                    onClick={() => setBoardPage(num)}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 ${boardPage === num ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-50 hover:border-blue-300'}`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           
           {/* 오른쪽: 사이드바 */}
@@ -848,10 +962,10 @@ export default function PostDetailPage() {
                         </h4>
                         <div className="text-xs text-gray-500">
                           {hotPost.nickname} · {new Date(hotPost.created_at).toLocaleDateString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/\s/g, '')} · 
-                          <span className="text-blue-600 ml-1">
+                          <span className="text-gray-400 ml-1">
                             <FontAwesomeIcon icon={faEye} className="mr-1" />{hotPost.view_count ?? 0}
                           </span>
-                          <span className="text-blue-600 ml-2">
+                          <span className="text-gray-400 ml-2">
                             <FontAwesomeIcon icon={faComment} className="mr-1" />{hotPost.comment_count ?? 0}
                           </span>
                         </div>

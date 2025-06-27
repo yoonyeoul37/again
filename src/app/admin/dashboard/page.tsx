@@ -374,6 +374,9 @@ export default function AdminDashboard() {
               <Link href="/admin/ads" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                 광고 관리
               </Link>
+              <Link href="/admin/ads/banner" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                개인광고
+              </Link>
               <Link href="/admin/news" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                 뉴스 관리
               </Link>

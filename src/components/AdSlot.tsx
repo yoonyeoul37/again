@@ -22,13 +22,13 @@ export default function AdSlot({ position, className = '', ad }: AdSlotProps) {
   const getAdSize = () => {
     switch (position) {
       case 'sidebar':
-        return 'w-full h-96';
+        return 'w-full h-28';
       case 'content':
-        return 'w-full h-32';
+        return 'w-full h-28';
       case 'bottom':
-        return 'w-full h-32';
+        return 'w-full h-20';
       default:
-        return 'w-full h-32';
+        return 'w-full h-28';
     }
   };
   const getAdStyle = () => {
@@ -134,12 +134,12 @@ export default function AdSlot({ position, className = '', ad }: AdSlotProps) {
           onClick={handleAdClick}
         >
           {ad.image_url ? (
-            <div
-              className="w-full h-full bg-cover bg-center relative rounded-xl"
-              style={{ backgroundImage: `url('${ad.image_url}')` }}
-            >
-              {/* 텍스트/전화번호 오버레이 완전 제거 */}
-            </div>
+            <img
+              src={ad.image_url}
+              alt={ad.title || '광고 이미지'}
+              className="w-full h-full object-contain bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-3 shadow-sm"
+              style={{ maxHeight: '100%', maxWidth: '100%' }}
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">내부 광고</div>
           )}
