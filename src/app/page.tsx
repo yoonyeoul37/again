@@ -168,6 +168,7 @@ export default function HomePage() {
   const [page, setPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [mounted, setMounted] = useState(false);
+  const [topAd, setTopAd] = useState<any>(null); // 상단 광고 상태
   const [mainPageSettings, setMainPageSettings] = useState({
     hopeImage: '/globe.svg',
     hopeMessage: '희망은 언제나 가까이에 있습니다.\n함께 힘내요!'
@@ -186,6 +187,15 @@ export default function HomePage() {
     fetchPosts();
     fetchMainPageSettings();
   }, []);
+
+  // 광고 데이터가 로드될 때마다 상단 광고 랜덤 선택
+  useEffect(() => {
+    if (actualAds && actualAds.length > 0) {
+      const randomAd = getRandomAd();
+      setTopAd(randomAd);
+      console.log('상단 광고 설정:', randomAd?.title);
+    }
+  }, [actualAds, userLocation]);
 
   const fetchMainPageSettings = async () => {
     try {
@@ -241,10 +251,60 @@ export default function HomePage() {
   // 베스트글 테스트
   const bestPosts = samplePosts.filter(post => post.likes >= 10);
 
-  // 랜덤 광고 선택 함수
+  // 랜덤 광고 선택 함수 - 위치 기반 우선순위 적용
   const getRandomAd = () => {
     if (!actualAds || actualAds.length === 0) return undefined;
+    
+    // 1. 사용자 위치에 맞는 광고들 필터링
+    const locationBasedAds = actualAds.filter(ad => {
+      if (!userLocation) return false;
+      
+      if (ad.ad_type === 'major') {
+        // 대도시 전체 광고 매칭
+        const majorCityMap: { [key: string]: string[] } = {
+          'seoul': ['서울', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
+          'busan': ['부산', '강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
+          'daegu': ['대구', '남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
+          'incheon': ['인천', '계양구', '남구', '남동구', '동구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
+          'daejeon': ['대전', '대덕구', '동구', '서구', '유성구', '중구'],
+          'gwangju': ['광주', '광산구', '남구', '동구', '북구', '서구'],
+          'ulsan': ['울산', '남구', '동구', '북구', '울주군', '중구'],
+          'sejong': ['세종', '세종특별자치시']
+        };
+        
+        const cityRegions = majorCityMap[ad.major_city || ''] || [];
+        return cityRegions.some(region => userLocation.includes(region));
+      } else if (ad.ad_type === 'regional' && ad.regions) {
+        // 중소도시/군 선택 광고 매칭
+        const regionMap: { [key: string]: string } = {
+          'suwon': '수원시', 'seongnam': '성남시', 'bucheon': '부천시', 'ansan': '안산시',
+          'anyang': '안양시', 'pyeongtaek': '평택시', 'dongducheon': '동두천시',
+          'uijeongbu': '의정부시', 'goyang': '고양시', 'gwangmyeong': '광명시',
+          'gwangju_gyeonggi': '광주시', 'yongin': '용인시', 'paju': '파주시',
+          'icheon': '이천시', 'anseong': '안성시', 'gimpo': '김포시',
+          'hwaseong': '화성시', 'yangju': '양주시', 'pocheon': '포천시',
+          'yeoju': '여주시', 'gapyeong': '가평군', 'yangpyeong': '양평군',
+          'yeoncheon': '연천군'
+        };
+        
+        return ad.regions.some(region => {
+          const regionName = regionMap[region] || region;
+          return userLocation.includes(regionName);
+        });
+      }
+      return false;
+    });
+    
+    // 2. 위치 기반 광고가 있으면 그 중에서 랜덤 선택
+    if (locationBasedAds.length > 0) {
+      const idx = Math.floor(Math.random() * locationBasedAds.length);
+      console.log('위치 기반 광고 선택:', locationBasedAds[idx].title, '사용자 위치:', userLocation);
+      return locationBasedAds[idx];
+    }
+    
+    // 3. 위치 기반 광고가 없으면 전체 광고에서 랜덤 선택
     const idx = Math.floor(Math.random() * actualAds.length);
+    console.log('전체 광고에서 랜덤 선택:', actualAds[idx].title);
     return actualAds[idx];
   };
 
@@ -272,20 +332,20 @@ export default function HomePage() {
 
       {/* 게시글 표 */}
       <main className="mx-auto mt-8 mb-12" style={{maxWidth: '1200px'}}>
-        {/* 리스트 위 배너 광고 (위치기반) */}
+        {/* 리스트 위 배너 광고 (위치기반 랜덤) */}
         <div className="mb-6">
-          {!loading && ad ? (
-            // 실제 광고주가 등록한 광고 (실전 서비스 방식)
+          {!loading && topAd ? (
+            // 실제 광고주가 등록한 광고 (랜덤 선택)
             <div className="w-full relative overflow-hidden rounded-xl shadow-lg">
-              {ad.image ? (
-                ad.website ? (
+              {topAd?.image_url ? (
+                topAd?.website ? (
                   <a 
-                    href={ad.website} 
+                    href={topAd?.website} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="block w-full h-48 bg-cover bg-center relative hover:opacity-90 transition-opacity"
                     style={{
-                      backgroundImage: `url('${ad.image}')`,
+                      backgroundImage: `url('${topAd?.image_url}')`,
                     }}
                   >
                     {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
@@ -294,7 +354,7 @@ export default function HomePage() {
                   <div
                     className="w-full h-48 bg-cover bg-center relative"
                     style={{
-                      backgroundImage: `url('${ad.image}')`,
+                      backgroundImage: `url('${topAd?.image_url}')`,
                     }}
                   >
                     {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
@@ -303,34 +363,26 @@ export default function HomePage() {
               ) : (
                 <div className="w-full h-48 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg flex items-center justify-center">
                   <div className="text-white text-center">
-                    <h3 className="text-2xl font-bold mb-2">{ad.title}</h3>
-                    <p className="text-lg mb-2">{ad.description}</p>
+                    <h3 className="text-2xl font-bold mb-2">{topAd?.title}</h3>
+                    <p className="text-lg mb-2">{topAd?.description}</p>
                     <div className="text-sm">
-                      {ad.advertiser} | ☎ {ad.phone}
+                      {topAd?.advertiser} | ☎ {topAd?.phone}
                     </div>
                   </div>
                 </div>
               )}
             </div>
-          ) :
-            // 기본 지역별 광고
+          ) : (
+            // 광고가 없을 때 기본 안내
             mounted && (
-              <div
-                className="w-full relative overflow-hidden rounded-xl shadow-lg"
-                style={{
-                  backgroundImage: `url('${ad?.image || ''}')`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  minHeight: '200px'
-                }}
-              >
-                <div className="absolute inset-0 bg-black/50" />
-                <div className="relative z-10 flex flex-col items-center justify-center h-full py-12 text-white text-center">
-                  <span className="text-3xl font-bold drop-shadow-lg">{ad?.text || ''}</span>
+              <div className="w-full h-48 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl shadow-lg flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <h3 className="text-xl font-bold mb-2">광고 공간</h3>
+                  <p className="text-sm">위치 기반 맞춤 광고가 여기에 표시됩니다</p>
                 </div>
               </div>
             )
-          }
+          )}
         </div>
         
         {/* 2단 레이아웃: 게시판 + 카테고리 정보 */}

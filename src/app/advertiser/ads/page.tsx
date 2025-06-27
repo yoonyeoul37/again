@@ -10,6 +10,8 @@ export default function MyAdsPage() {
   const router = useRouter();
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
 
   useEffect(() => {
     if (!isLoading && (!user || user.role !== 'advertiser')) {
@@ -36,6 +38,53 @@ export default function MyAdsPage() {
     fetchAds();
   }, [user]);
 
+  // 페이징 계산
+  const totalPages = Math.ceil(ads.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentAds = ads.slice(startIndex, endIndex);
+
+  // 페이지 변경 함수
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // 페이지 번호 배열 생성
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
       year: 'numeric',
@@ -56,10 +105,10 @@ export default function MyAdsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '진행중': return 'bg-green-100 text-green-800';
-      case '대기중': return 'bg-yellow-100 text-yellow-800';
-      case '종료': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case '진행중': return 'bg-blue-50 text-blue-700 border border-blue-200';
+      case '대기중': return 'bg-gray-50 text-gray-700 border border-gray-200';
+      case '종료': return 'bg-gray-100 text-gray-600 border border-gray-300';
+      default: return 'bg-gray-50 text-gray-700 border border-gray-200';
     }
   };
 
@@ -151,106 +200,187 @@ export default function MyAdsPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {ads.map((ad: any) => {
-              const status = getStatusText(ad.start_date, ad.end_date);
-              return (
-                <div key={ad.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                  {/* 이미지 */}
-                  <div className="aspect-video bg-gray-100 relative overflow-hidden">
-                    {ad.image_url ? (
-                      <img 
-                        src={ad.image_url} 
-                        alt={ad.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div className={`absolute inset-0 flex items-center justify-center ${ad.image_url ? 'hidden' : ''}`}>
-                      <svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    {/* 상태 배지 */}
-                    <div className="absolute top-3 right-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
-                        {status}
-                      </span>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* 테이블 헤더 */}
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+              <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
+                <div className="col-span-2 text-center">이미지</div>
+                <div className="col-span-3 text-left">광고 정보</div>
+                <div className="col-span-1 text-center">상태</div>
+                <div className="col-span-2 text-center">지역</div>
+                <div className="col-span-2 text-center">계약 기간</div>
+                <div className="col-span-2 text-center">설정</div>
+              </div>
+            </div>
+            
+            {/* 테이블 본문 */}
+            <div className="divide-y divide-gray-200">
+              {currentAds.map((ad: any) => {
+                const status = getStatusText(ad.start_date, ad.end_date);
+                return (
+                  <div key={ad.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                    <div className="grid grid-cols-12 gap-4 items-center">
+                      {/* 이미지 */}
+                      <div className="col-span-2 flex justify-center">
+                        <div className="w-20 h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                          {ad.image_url ? (
+                            <img 
+                              src={ad.image_url} 
+                              alt={ad.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                target.nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-full h-full flex items-center justify-center ${ad.image_url ? 'hidden' : ''}`}>
+                            <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* 광고 정보 */}
+                      <div className="col-span-3">
+                        <div className="space-y-1">
+                          <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">
+                            {ad.title}
+                          </h3>
+                          <p className="text-xs text-gray-600 line-clamp-2">
+                            {ad.description}
+                          </p>
+                          <div className="flex items-center text-xs text-gray-500">
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            {ad.advertiser}
+                          </div>
+                          <div className="flex items-center text-xs text-gray-500">
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            {ad.phone}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* 상태 */}
+                      <div className="col-span-1 flex justify-center">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+                          {status}
+                        </span>
+                      </div>
+                      
+                      {/* 지역 */}
+                      <div className="col-span-2 text-center">
+                        <span className="text-sm text-gray-700">
+                          {getAdLocationText(ad)}
+                        </span>
+                      </div>
+                      
+                      {/* 계약 기간 */}
+                      <div className="col-span-2 text-center">
+                        <div className="text-sm text-gray-700">
+                          <div>{formatDate(ad.start_date)}</div>
+                          <div className="text-xs text-gray-500">~ {formatDate(ad.end_date)}</div>
+                        </div>
+                      </div>
+                      
+                      {/* 설정 버튼 */}
+                      <div className="col-span-2 flex justify-center">
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/advertiser/ads/edit/${ad.id}`}
+                            className="px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-xs font-medium transition-colors"
+                          >
+                            수정
+                          </Link>
+                          <button
+                            onClick={async () => {
+                              if (confirm('정말 이 광고를 삭제하시겠습니까?')) {
+                                const { error } = await supabase.from('ads').delete().eq('id', ad.id);
+                                if (error) {
+                                  alert('삭제 실패: ' + error.message);
+                                } else {
+                                  setAds(prev => prev.filter((item: any) => item.id !== ad.id));
+                                  alert('광고가 삭제되었습니다.');
+                                }
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 text-xs font-medium transition-colors"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* 내용 */}
-                  <div className="p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                      {ad.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                      {ad.description}
-                    </p>
+                );
+              })}
+            </div>
+            
+            {/* 페이징 UI */}
+            {totalPages > 1 && (
+              <div className="bg-white px-6 py-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    총 {ads.length}개 광고 중 {startIndex + 1}-{Math.min(endIndex, ads.length)}개 표시
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {/* 이전 버튼 */}
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        currentPage === 1
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      이전
+                    </button>
                     
-                    {/* 광고주 정보 */}
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        {ad.advertiser}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                        {ad.phone}
-                      </div>
+                    {/* 페이지 번호 */}
+                    <div className="flex items-center space-x-1">
+                      {getPageNumbers().map((page, index) => (
+                        <div key={index}>
+                          {page === '...' ? (
+                            <span className="px-2 py-1 text-gray-500">...</span>
+                          ) : (
+                            <button
+                              onClick={() => handlePageChange(page as number)}
+                              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                currentPage === page
+                                  ? 'bg-blue-600 text-white'
+                                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
                     
-                    {/* 계약 기간 */}
-                    <div className="border-t border-gray-100 pt-4">
-                      <div className="flex justify-between text-sm text-gray-500">
-                        <span>계약 기간:</span>
-                        <span>{formatDate(ad.start_date)} ~ {formatDate(ad.end_date)}</span>
-                      </div>
-                    </div>
-                    
-                    {/* 광고 타입 */}
-                    <div className="mt-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {getAdLocationText(ad)}
-                      </span>
-                    </div>
-                    {/* 수정/삭제 버튼 */}
-                    <div className="mt-4 flex gap-2">
-                      <Link
-                        href={`/advertiser/ads/edit/${ad.id}`}
-                        className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm font-medium"
-                      >
-                        수정
-                      </Link>
-                      <button
-                        onClick={async () => {
-                          if (confirm('정말 이 광고를 삭제하시겠습니까?')) {
-                            const { error } = await supabase.from('ads').delete().eq('id', ad.id);
-                            if (error) {
-                              alert('삭제 실패: ' + error.message);
-                            } else {
-                              setAds(prev => prev.filter((item: any) => item.id !== ad.id));
-                              alert('광고가 삭제되었습니다.');
-                            }
-                          }
-                        }}
-                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium"
-                      >
-                        삭제
-                      </button>
-                    </div>
+                    {/* 다음 버튼 */}
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        currentPage === totalPages
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      다음
+                    </button>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
         )}
       </div>

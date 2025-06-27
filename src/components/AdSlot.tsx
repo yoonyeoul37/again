@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { recordImpression, recordClick } from '@/lib/adStats';
 
 interface AdSlotProps {
   position: 'sidebar' | 'content' | 'bottom';
   className?: string;
   ad?: {
+    id?: number;
     image_url?: string;
     title?: string;
     phone?: string;
@@ -58,6 +60,25 @@ export default function AdSlot({ position, className = '', ad }: AdSlotProps) {
   const adRef = useRef<HTMLDivElement>(null);
   const [isAdSenseLoaded, setIsAdSenseLoaded] = useState(false);
   const [isAdLoaded, setIsAdLoaded] = useState(false);
+  const [impressionRecorded, setImpressionRecorded] = useState(false);
+
+  // 광고 노출 기록
+  useEffect(() => {
+    if (ad?.id && !impressionRecorded) {
+      const pageUrl = window.location.href;
+      console.log('광고 노출 기록:', ad.id, pageUrl);
+      recordImpression(ad.id, pageUrl);
+      setImpressionRecorded(true);
+    }
+  }, [ad?.id, impressionRecorded]);
+
+  // 광고 클릭 핸들러
+  const handleAdClick = async () => {
+    if (ad?.id) {
+      console.log('광고 클릭 기록:', ad.id);
+      await recordClick(ad.id);
+    }
+  };
 
   useEffect(() => {
     if (isDev || ad) return; // 개발환경 또는 내부광고면 adsbygoogle 실행 X
@@ -105,7 +126,13 @@ export default function AdSlot({ position, className = '', ad }: AdSlotProps) {
   if (ad) {
     return (
       <div ref={adRef} className={`${getAdSize()} ${getAdStyle()} ${className}`}>
-        <a href={ad.website || '#'} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+        <a 
+          href={ad.website || '#'} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="block w-full h-full"
+          onClick={handleAdClick}
+        >
           {ad.image_url ? (
             <div
               className="w-full h-full bg-cover bg-center relative rounded-xl"

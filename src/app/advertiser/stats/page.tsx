@@ -1,73 +1,118 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
+import { getAdStats } from '@/lib/adStats';
 
 // 광고 통계 데이터 타입
 interface AdStats {
-  id: string;
-  title: string;
-  region: string;
+  id: number;
+  ad_id: number;
+  date: string;
   impressions: number;
   clicks: number;
   ctr: number;
-  dailyStats: {
-    date: string;
-    impressions: number;
-    clicks: number;
-  }[];
 }
 
-// 샘플 데이터
-const sampleStats: AdStats[] = [
-  {
-    id: '1',
-    title: '강남법무사 무료상담',
-    region: '서울 전체',
-    impressions: 1250,
-    clicks: 45,
-    ctr: 3.6,
-    dailyStats: [
-      { date: '2024-01-01', impressions: 120, clicks: 4 },
-      { date: '2024-01-02', impressions: 135, clicks: 5 },
-      { date: '2024-01-03', impressions: 110, clicks: 3 },
-      { date: '2024-01-04', impressions: 145, clicks: 6 },
-      { date: '2024-01-05', impressions: 130, clicks: 4 },
-      { date: '2024-01-06', impressions: 125, clicks: 5 },
-      { date: '2024-01-07', impressions: 140, clicks: 4 },
-      { date: '2024-01-08', impressions: 155, clicks: 7 },
-      { date: '2024-01-09', impressions: 120, clicks: 3 },
-      { date: '2024-01-10', impressions: 130, clicks: 4 }
-    ]
-  },
-  {
-    id: '2',
-    title: '송파변호사 무료상담',
-    region: '서울 전체',
-    impressions: 980,
-    clicks: 32,
-    ctr: 3.3,
-    dailyStats: [
-      { date: '2024-01-01', impressions: 95, clicks: 3 },
-      { date: '2024-01-02', impressions: 105, clicks: 4 },
-      { date: '2024-01-03', impressions: 90, clicks: 2 },
-      { date: '2024-01-04', impressions: 110, clicks: 4 },
-      { date: '2024-01-05', impressions: 100, clicks: 3 },
-      { date: '2024-01-06', impressions: 95, clicks: 3 },
-      { date: '2024-01-07', impressions: 105, clicks: 4 },
-      { date: '2024-01-08', impressions: 115, clicks: 5 },
-      { date: '2024-01-09', impressions: 90, clicks: 2 },
-      { date: '2024-01-10', impressions: 100, clicks: 4 }
-    ]
-  }
-];
+interface Ad {
+  id: number;
+  title: string;
+  region: string;
+  status: string;
+}
 
 export default function AdvertiserStatsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [selectedAd, setSelectedAd] = useState<string>('all');
+  const [stats, setStats] = useState<AdStats[]>([]);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const totalImpressions = sampleStats.reduce((sum, ad) => sum + ad.impressions, 0);
-  const totalClicks = sampleStats.reduce((sum, ad) => sum + ad.clicks, 0);
+  // 광고 목록 가져오기
+  useEffect(() => {
+    async function fetchAds() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('ads')
+          .select('id, title, status')
+          .eq('advertiser_id', user.id)
+          .eq('status', 'active');
+
+        if (error) {
+          console.error('광고 목록 조회 실패:', error);
+          return;
+        }
+
+        setAds(data || []);
+      } catch (error) {
+        console.error('광고 목록 조회 중 오류:', error);
+      }
+    }
+
+    fetchAds();
+  }, []);
+
+  // 통계 데이터 가져오기
+  useEffect(() => {
+    async function fetchStats() {
+      setLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // 기간 계산
+        const endDate = new Date().toISOString().split('T')[0];
+        let startDate = new Date();
+        
+        switch (selectedPeriod) {
+          case '7d':
+            startDate.setDate(startDate.getDate() - 7);
+            break;
+          case '30d':
+            startDate.setDate(startDate.getDate() - 30);
+            break;
+          case '90d':
+            startDate.setDate(startDate.getDate() - 90);
+            break;
+          default:
+            startDate = new Date('2020-01-01'); // 전체 기간
+        }
+
+        const startDateStr = startDate.toISOString().split('T')[0];
+
+        // 선택된 광고의 통계 가져오기
+        if (selectedAd === 'all') {
+          // 모든 광고의 통계
+          const allStats: AdStats[] = [];
+          for (const ad of ads) {
+            const adStats = await getAdStats(ad.id, startDateStr, endDate);
+            allStats.push(...adStats);
+          }
+          setStats(allStats);
+        } else {
+          // 특정 광고의 통계
+          const adStats = await getAdStats(parseInt(selectedAd), startDateStr, endDate);
+          setStats(adStats);
+        }
+      } catch (error) {
+        console.error('통계 조회 중 오류:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (ads.length > 0) {
+      fetchStats();
+    }
+  }, [selectedPeriod, selectedAd, ads]);
+
+  // 통계 계산
+  const totalImpressions = stats.reduce((sum, stat) => sum + stat.impressions, 0);
+  const totalClicks = stats.reduce((sum, stat) => sum + stat.clicks, 0);
   const totalCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
   const formatNumber = (num: number) => {
@@ -86,6 +131,17 @@ export default function AdvertiserStatsPage() {
       default: return '전체';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">통계를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50" style={{fontFamily: `'Malgun Gothic', '맑은 고딕', Dotum, '돋움', Arial, Helvetica, sans-serif`}}>
@@ -106,27 +162,44 @@ export default function AdvertiserStatsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 기간 선택 */}
+        {/* 기간 및 광고 선택 */}
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">통계 기간</h2>
-              <p className="text-sm text-gray-600">광고 성과를 확인할 기간을 선택하세요</p>
+              <h2 className="text-lg font-semibold text-gray-900">통계 설정</h2>
+              <p className="text-sm text-gray-600">광고 성과를 확인할 기간과 광고를 선택하세요</p>
             </div>
-            <div className="flex space-x-2">
-              {['7d', '30d', '90d'].map((period) => (
-                <button
-                  key={period}
-                  onClick={() => setSelectedPeriod(period)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedPeriod === period
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {getPeriodLabel(period)}
-                </button>
-              ))}
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* 기간 선택 */}
+              <div className="flex space-x-2">
+                {['7d', '30d', '90d'].map((period) => (
+                  <button
+                    key={period}
+                    onClick={() => setSelectedPeriod(period)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      selectedPeriod === period
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {getPeriodLabel(period)}
+                  </button>
+                ))}
+              </div>
+              
+              {/* 광고 선택 */}
+              <select
+                value={selectedAd}
+                onChange={(e) => setSelectedAd(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="all">모든 광고</option>
+                {ads.map((ad) => (
+                  <option key={ad.id} value={ad.id.toString()}>
+                    {ad.title}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -180,7 +253,7 @@ export default function AdvertiserStatsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">활성 광고</p>
-                <p className="text-3xl font-bold text-orange-600">{sampleStats.length}</p>
+                <p className="text-3xl font-bold text-orange-600">{ads.length}</p>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,119 +264,56 @@ export default function AdvertiserStatsPage() {
           </div>
         </div>
 
-        {/* 광고별 상세 통계 */}
+        {/* 통계 테이블 */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">광고별 상세 통계</h2>
+            <h2 className="text-lg font-semibold text-gray-900">일별 상세 통계</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">광고 제목</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">지역</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">노출</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">클릭</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CTR</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상세보기</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    날짜
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    노출
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    클릭
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    CTR
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sampleStats.map((ad) => (
-                  <tr key={ad.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{ad.title}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{ad.region}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{formatNumber(ad.impressions)}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{formatNumber(ad.clicks)}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{formatPercentage(ad.ctr)}%</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button 
-                        onClick={() => setSelectedAd(selectedAd === ad.id ? 'all' : ad.id)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        {selectedAd === ad.id ? '접기' : '펼치기'}
-                      </button>
+                {stats.length > 0 ? (
+                  stats.map((stat) => (
+                    <tr key={stat.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(stat.date).toLocaleDateString('ko-KR')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatNumber(stat.impressions)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatNumber(stat.clicks)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatPercentage(stat.ctr)}%
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                      선택한 기간에 통계 데이터가 없습니다.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        {/* 일별 상세 통계 (선택된 광고) */}
-        {selectedAd !== 'all' && (
-          <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {sampleStats.find(ad => ad.id === selectedAd)?.title} - 일별 통계
-              </h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">날짜</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">노출</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">클릭</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CTR</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sampleStats
-                    .find(ad => ad.id === selectedAd)
-                    ?.dailyStats.map((day, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(day.date).toLocaleDateString('ko-KR')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatNumber(day.impressions)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatNumber(day.clicks)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {day.impressions > 0 ? formatPercentage((day.clicks / day.impressions) * 100) : '0'}%
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* 성과 분석 */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">성과 분석</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-2">📈 긍정적 지표</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• 평균 CTR이 3.5%로 업계 평균(2-3%) 대비 우수</li>
-                <li>• 일일 노출이 안정적으로 유지되고 있음</li>
-                <li>• 클릭 수가 꾸준히 증가하는 추세</li>
-              </ul>
-            </div>
-            <div className="p-4 bg-yellow-50 rounded-lg">
-              <h4 className="font-medium text-yellow-900 mb-2">💡 개선 제안</h4>
-              <ul className="text-sm text-yellow-800 space-y-1">
-                <li>• 광고 이미지 최적화로 CTR 향상 가능</li>
-                <li>• 지역별 타겟팅 세분화 고려</li>
-                <li>• A/B 테스트를 통한 광고 문구 개선</li>
-              </ul>
-            </div>
           </div>
         </div>
       </div>

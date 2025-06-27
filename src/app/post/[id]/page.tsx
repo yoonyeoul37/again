@@ -632,10 +632,60 @@ export default function PostDetailPage() {
       .map(comment => renderComment(comment));
   }
 
-  // 랜덤 광고 선택 함수
+  // 랜덤 광고 선택 함수 - 위치 기반 우선순위 적용
   const getRandomAd = () => {
     if (!actualAds || actualAds.length === 0) return undefined;
+    
+    // 1. 사용자 위치에 맞는 광고들 필터링
+    const locationBasedAds = actualAds.filter(ad => {
+      if (!userLocation) return false;
+      
+      if (ad.ad_type === 'major') {
+        // 대도시 전체 광고 매칭
+        const majorCityMap: { [key: string]: string[] } = {
+          'seoul': ['서울', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
+          'busan': ['부산', '강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
+          'daegu': ['대구', '남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
+          'incheon': ['인천', '계양구', '남구', '남동구', '동구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
+          'daejeon': ['대전', '대덕구', '동구', '서구', '유성구', '중구'],
+          'gwangju': ['광주', '광산구', '남구', '동구', '북구', '서구'],
+          'ulsan': ['울산', '남구', '동구', '북구', '울주군', '중구'],
+          'sejong': ['세종', '세종특별자치시']
+        };
+        
+        const cityRegions = majorCityMap[ad.major_city || ''] || [];
+        return cityRegions.some(region => userLocation.includes(region));
+      } else if (ad.ad_type === 'regional' && ad.regions) {
+        // 중소도시/군 선택 광고 매칭
+        const regionMap: { [key: string]: string } = {
+          'suwon': '수원시', 'seongnam': '성남시', 'bucheon': '부천시', 'ansan': '안산시',
+          'anyang': '안양시', 'pyeongtaek': '평택시', 'dongducheon': '동두천시',
+          'uijeongbu': '의정부시', 'goyang': '고양시', 'gwangmyeong': '광명시',
+          'gwangju_gyeonggi': '광주시', 'yongin': '용인시', 'paju': '파주시',
+          'icheon': '이천시', 'anseong': '안성시', 'gimpo': '김포시',
+          'hwaseong': '화성시', 'yangju': '양주시', 'pocheon': '포천시',
+          'yeoju': '여주시', 'gapyeong': '가평군', 'yangpyeong': '양평군',
+          'yeoncheon': '연천군'
+        };
+        
+        return ad.regions.some(region => {
+          const regionName = regionMap[region] || region;
+          return userLocation.includes(regionName);
+        });
+      }
+      return false;
+    });
+    
+    // 2. 위치 기반 광고가 있으면 그 중에서 랜덤 선택
+    if (locationBasedAds.length > 0) {
+      const idx = Math.floor(Math.random() * locationBasedAds.length);
+      console.log('위치 기반 광고 선택:', locationBasedAds[idx].title, '사용자 위치:', userLocation);
+      return locationBasedAds[idx];
+    }
+    
+    // 3. 위치 기반 광고가 없으면 전체 광고에서 랜덤 선택
     const idx = Math.floor(Math.random() * actualAds.length);
+    console.log('전체 광고에서 랜덤 선택:', actualAds[idx].title);
     return actualAds[idx];
   };
 
