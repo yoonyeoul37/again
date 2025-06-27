@@ -336,7 +336,7 @@ export default function NewAdvertiserAdPage() {
           regions: adType === 'regional' ? selectedRegions : null,
           created_at: new Date().toISOString(),
           image_url: imageUrl,
-          status: 'active',
+          status: 'pending',
         }
       ]);
       if (error) {

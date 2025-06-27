@@ -30,8 +30,8 @@ function useRegionAd() {
           .from('ads')
           .select('*')
           .eq('status', 'active')
-          .gte('start_date', today)
-          .lte('end_date', today)
+          // .gte('start_date', today)
+          // .lte('end_date', today)
           .order('created_at', { ascending: false });
         if (error) {
           console.error('광고 로드 실패:', error);
@@ -241,55 +241,11 @@ export default function HomePage() {
   // 베스트글 테스트
   const bestPosts = samplePosts.filter(post => post.likes >= 10);
 
-  // 실제 광고 중에서 랜덤하게 선택 (실전 서비스 방식)
+  // 랜덤 광고 선택 함수
   const getRandomAd = () => {
-    if (actualAds.length === 0) return null;
-    const randomIndex = Math.floor(Math.random() * actualAds.length);
-    return actualAds[randomIndex];
-  };
-  const randomAd = getRandomAd();
-
-  // 개발용 위치 테스트 함수
-  const testLocation = (location: string) => {
-    console.log('테스트 위치:', location);
-    const matchedAd = actualAds.find(ad => {
-      if (ad.ad_type === 'major') {
-        const majorCityMap: { [key: string]: string[] } = {
-          'seoul': ['서울', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
-          'busan': ['부산', '강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
-          'daegu': ['대구', '남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
-          'incheon': ['인천', '계양구', '남구', '남동구', '동구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
-          'daejeon': ['대전', '대덕구', '동구', '서구', '유성구', '중구'],
-          'gwangju': ['광주', '광산구', '남구', '동구', '북구', '서구'],
-          'ulsan': ['울산', '남구', '동구', '북구', '울주군', '중구'],
-          'sejong': ['세종', '세종특별자치시']
-        };
-        const cityRegions = majorCityMap[ad.major_city || ''] || [];
-        return cityRegions.some(region => location.includes(region));
-      } else if (ad.ad_type === 'regional' && ad.regions) {
-        const regionMap: { [key: string]: string } = {
-          'suwon': '수원시', 'seongnam': '성남시', 'bucheon': '부천시', 'ansan': '안산시',
-          'anyang': '안양시', 'pyeongtaek': '평택시', 'dongducheon': '동두천시',
-          'uijeongbu': '의정부시', 'goyang': '고양시', 'gwangmyeong': '광명시',
-          'gwangju_gyeonggi': '광주시', 'yongin': '용인시', 'paju': '파주시',
-          'icheon': '이천시', 'anseong': '안성시', 'gimpo': '김포시',
-          'hwaseong': '화성시', 'yangju': '양주시', 'pocheon': '포천시',
-          'yeoju': '여주시', 'gapyeong': '가평군', 'yangpyeong': '양평군',
-          'yeoncheon': '연천군'
-        };
-        return ad.regions.some(region => {
-          const regionName = regionMap[region] || region;
-          return location.includes(regionName);
-        });
-      }
-      return false;
-    });
-    
-    if (matchedAd) {
-      console.log('매칭된 광고:', matchedAd);
-    } else {
-      console.log('매칭되는 광고 없음');
-    }
+    if (!actualAds || actualAds.length === 0) return undefined;
+    const idx = Math.floor(Math.random() * actualAds.length);
+    return actualAds[idx];
   };
 
   function isNew(created_at: string) {
@@ -306,78 +262,30 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50" style={{fontFamily: `'Malgun Gothic', '맑은 고딕', Dotum, '돋움', Arial, Helvetica, sans-serif`}}>
-      {/* 상단 로그인/회원가입 버튼 */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-end items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link href="/login" className="text-gray-600 hover:text-gray-900 text-sm font-medium">
-                로그인
-              </Link>
-              <Link href="/signup" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                회원가입
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* 상단 로그인/회원가입 버튼 삭제됨 */}
 
       {/* 상단 네비게이션/로고/메뉴/글쓰기 버튼 완전 삭제 */}
 
       {/* 메인 바로가기 버튼 삭제됨 */}
 
-      {/* 위치 정보 표시 (개발용) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">🔍 위치 기반 광고 테스트 (개발용)</h3>
-          <div className="text-sm text-blue-800 mb-3">
-            <strong>감지된 위치:</strong> {userLocation || '감지 중...'}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => testLocation('강남구')}
-              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              강남구 테스트
-            </button>
-            <button
-              onClick={() => testLocation('송파구')}
-              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              송파구 테스트
-            </button>
-            <button
-              onClick={() => testLocation('수원시')}
-              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              수원시 테스트
-            </button>
-            <button
-              onClick={() => testLocation('부산')}
-              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              부산 테스트
-            </button>
-          </div>
-        </div>
-      )}
+      {/* 위치 정보 표시 (개발용) 삭제 */}
 
       {/* 게시글 표 */}
       <main className="mx-auto mt-8 mb-12" style={{maxWidth: '1200px'}}>
         {/* 리스트 위 배너 광고 (위치기반) */}
         <div className="mb-6">
-          {!loading && randomAd ? (
+          {!loading && ad ? (
             // 실제 광고주가 등록한 광고 (실전 서비스 방식)
             <div className="w-full relative overflow-hidden rounded-xl shadow-lg">
-              {randomAd.image_url ? (
-                randomAd.website ? (
+              {ad.image ? (
+                ad.website ? (
                   <a 
-                    href={randomAd.website} 
+                    href={ad.website} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="block w-full h-48 bg-cover bg-center relative hover:opacity-90 transition-opacity"
                     style={{
-                      backgroundImage: `url('${randomAd.image_url}')`,
+                      backgroundImage: `url('${ad.image}')`,
                     }}
                   >
                     {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
@@ -386,7 +294,7 @@ export default function HomePage() {
                   <div
                     className="w-full h-48 bg-cover bg-center relative"
                     style={{
-                      backgroundImage: `url('${randomAd.image_url}')`,
+                      backgroundImage: `url('${ad.image}')`,
                     }}
                   >
                     {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
@@ -395,10 +303,10 @@ export default function HomePage() {
               ) : (
                 <div className="w-full h-48 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg flex items-center justify-center">
                   <div className="text-white text-center">
-                    <h3 className="text-2xl font-bold mb-2">{randomAd.title}</h3>
-                    <p className="text-lg mb-2">{randomAd.description}</p>
+                    <h3 className="text-2xl font-bold mb-2">{ad.title}</h3>
+                    <p className="text-lg mb-2">{ad.description}</p>
                     <div className="text-sm">
-                      {randomAd.advertiser} | ☎ {randomAd.phone}
+                      {ad.advertiser} | ☎ {ad.phone}
                     </div>
                   </div>
                 </div>
@@ -781,7 +689,7 @@ export default function HomePage() {
             </div>
             
             {/* 하단 광고 */}
-            <AdSlot position="bottom" />
+            <AdSlot position="bottom" ad={getRandomAd()} />
           </div>
           
           {/* 오른쪽: 사이드바 광고 */}

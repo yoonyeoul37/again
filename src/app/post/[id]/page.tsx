@@ -32,65 +32,14 @@ function useRegionAd() {
 
   // 위치 기반 광고 매칭
   const matchLocationToAd = (location: string) => {
-    console.log('사용자 위치:', location);
-    console.log('로드된 광고 개수:', actualAds.length);
-    
-    // 실제 광고 데이터에서 위치 매칭
     if (actualAds.length > 0) {
-      const matchingAds = actualAds.filter(ad => {
-        if (ad.ad_type === 'major') {
-          // 대도시 전체 광고 매칭
-          const majorCityMap: { [key: string]: string[] } = {
-            'seoul': ['서울', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
-            'busan': ['부산', '강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
-            'daegu': ['대구', '남구', '달서구', '달성군', '동구', '북구', '서구', '수성구', '중구'],
-            'incheon': ['인천', '계양구', '남구', '남동구', '동구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
-            'daejeon': ['대전', '대덕구', '동구', '서구', '유성구', '중구'],
-            'gwangju': ['광주', '광산구', '남구', '동구', '북구', '서구'],
-            'ulsan': ['울산', '남구', '동구', '북구', '울주군', '중구'],
-            'sejong': ['세종', '세종특별자치시']
-          };
-          
-          const cityRegions = majorCityMap[ad.major_city || ''] || [];
-          return cityRegions.some(region => location.includes(region));
-        } else if (ad.ad_type === 'regional' && ad.regions) {
-          // 중소도시/군 선택 광고 매칭
-          const regionMap: { [key: string]: string } = {
-            'suwon': '수원시', 'seongnam': '성남시', 'bucheon': '부천시', 'ansan': '안산시',
-            'anyang': '안양시', 'pyeongtaek': '평택시', 'dongducheon': '동두천시',
-            'uijeongbu': '의정부시', 'goyang': '고양시', 'gwangmyeong': '광명시',
-            'gwangju_gyeonggi': '광주시', 'yongin': '용인시', 'paju': '파주시',
-            'icheon': '이천시', 'anseong': '안성시', 'gimpo': '김포시',
-            'hwaseong': '화성시', 'yangju': '양주시', 'pocheon': '포천시',
-            'yeoju': '여주시', 'gapyeong': '가평군', 'yangpyeong': '양평군',
-            'yeoncheon': '연천군'
-          };
-          
-          return ad.regions.some(region => {
-            const regionName = regionMap[region] || region;
-            return location.includes(regionName);
-          });
-        }
-        return false;
-      });
-      
-      console.log('매칭되는 광고 개수:', matchingAds.length);
-      
-      if (matchingAds.length > 0) {
-        // 매칭되는 광고가 여러 개일 때 랜덤으로 선택
-        const randomIndex = Math.floor(Math.random() * matchingAds.length);
-        const matchingAd = matchingAds[randomIndex];
-        console.log('랜덤 선택된 광고:', matchingAd);
-        return {
-          image: matchingAd.image_url || '',
-          text: `${matchingAd.title} - ${matchingAd.phone}`,
-          advertiser: matchingAd.advertiser
-        };
-      }
+      const matchingAd = actualAds[0];
+      return {
+        image: matchingAd.image_url || '',
+        text: `${matchingAd.title} - ${matchingAd.phone}`,
+        advertiser: matchingAd.advertiser
+      };
     }
-    
-    // 매칭되는 광고가 없으면 null 반환
-    console.log('노출할 광고 없음');
     return null;
   };
 
@@ -103,8 +52,8 @@ function useRegionAd() {
           .from('ads')
           .select('*')
           .eq('status', 'active')
-          .gte('start_date', today)
-          .lte('end_date', today)
+          // .gte('start_date', today)
+          // .lte('end_date', today)
           .order('created_at', { ascending: false });
 
         if (error) {
@@ -609,10 +558,13 @@ export default function PostDetailPage() {
               {user?.role === 'admin' && (
                 <button 
                   onClick={() => handleAdminDeleteComment(comment.id)} 
-                  className="text-xs text-red-600 hover:text-red-800 font-bold px-1 py-0.5 border border-red-300 rounded"
+                  className="text-xs text-red-600 hover:text-red-800 font-medium px-1 py-0.5 flex items-center gap-1"
                   title="관리자 삭제"
                 >
-                  🗑️
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  삭제
                 </button>
               )}
             </div>
@@ -680,6 +632,13 @@ export default function PostDetailPage() {
       .map(comment => renderComment(comment));
   }
 
+  // 랜덤 광고 선택 함수
+  const getRandomAd = () => {
+    if (!actualAds || actualAds.length === 0) return undefined;
+    const idx = Math.floor(Math.random() * actualAds.length);
+    return actualAds[idx];
+  };
+
   if (!post) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -697,26 +656,8 @@ export default function PostDetailPage() {
         <div className="flex gap-8">
           {/* 왼쪽: 메인 컨텐츠 */}
           <div className="flex-1">
-            {/* 게시글 상단 광고 */}
-            <div className="mb-6">
-              {ad && (
-                <div
-                  className="w-full relative overflow-hidden rounded-xl shadow-lg"
-                  style={{
-                    backgroundImage: `url('${ad.image}')`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    minHeight: '128px'
-                  }}
-                >
-                  <div className="absolute inset-0 bg-black/50" />
-                  <div className="relative z-10 flex flex-col items-center justify-center h-full py-4 text-white text-center">
-                    <span className="text-xl font-bold drop-shadow-lg">{ad.text}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
+            {/* 게시글 상단 광고 - 본문 위에 고정 */}
+            <AdSlot position="content" ad={getRandomAd()} className="mb-6" />
             {/* 게시글 내용 */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
               <div className="p-8">
@@ -766,10 +707,13 @@ export default function PostDetailPage() {
                     {user?.role === 'admin' && (
                       <button
                         onClick={handleAdminDeletePost}
-                        className="px-3 py-1.5 bg-red-700 text-white rounded-md hover:bg-red-800 transition-colors text-xs font-medium border-2 border-red-300"
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-xs font-medium flex items-center gap-1"
                         title="관리자 삭제"
                       >
-                        🗑️ 관리자삭제
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        삭제
                       </button>
                     )}
                   </div>
@@ -872,57 +816,6 @@ export default function PostDetailPage() {
               </div>
             </div>
 
-            {/* 광고 (728x90, AdSlot position='content') */}
-            <div className="my-6">
-              {!loading && actualAds.length > 1 ? (
-                (() => {
-                  const secondAd = actualAds[1];
-                  return (
-                    <div className="w-full relative overflow-hidden rounded-xl shadow-lg">
-                      {secondAd.image_url ? (
-                        secondAd.website ? (
-                          <a 
-                            href={secondAd.website} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="block w-full h-32 bg-cover bg-center relative hover:opacity-90 transition-opacity"
-                            style={{
-                              backgroundImage: `url('${secondAd.image_url}')`,
-                            }}
-                          >
-                            {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
-                          </a>
-                        ) : (
-                          <div
-                            className="w-full h-32 bg-cover bg-center relative"
-                            style={{
-                              backgroundImage: `url('${secondAd.image_url}')`,
-                            }}
-                          >
-                            {/* 텍스트 오버레이 제거 - 이미지에 이미 연락처와 회사명이 포함되어 있음 */}
-                          </div>
-                        )
-                      ) : (
-                        <div className="w-full h-32 bg-gradient-to-r from-green-600 to-teal-600 rounded-xl shadow-lg flex items-center justify-center">
-                          <div className="text-white text-center">
-                            <h3 className="text-lg font-bold mb-1">{secondAd.title}</h3>
-                            <p className="text-sm mb-1">{secondAd.description}</p>
-                            <div className="text-xs">
-                              {secondAd.advertiser} | ☎ {secondAd.phone}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()
-              ) : (
-                <div className="w-full relative overflow-hidden rounded-xl shadow-lg">
-                  {/* 광고 자리 */}
-                </div>
-              )}
-            </div>
-
             {/* Comments Section */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
               <div className="p-8">
@@ -1002,6 +895,12 @@ export default function PostDetailPage() {
                 </div>
               </div>
             </div>
+            {/* 광고 (728x90, AdSlot position='content') */}
+            {/* 댓글 등록 토스트 메시지: 하단 광고 위에 노출 */}
+            {showCommentToast && (
+              <div className="mt-2 text-center text-sm text-green-600 font-semibold animate-fade-in">댓글이 등록되었습니다!</div>
+            )}
+            <AdSlot position="content" ad={getRandomAd()} />
           </div>
           
           {/* 오른쪽: 사이드바 */}
@@ -1034,17 +933,12 @@ export default function PostDetailPage() {
                     ))}
                 </div>
               </div>
-              {/* 구글 광고 자리 */}
-              <div className="mt-6">
-                <AdSlot position="sidebar" />
-              </div>
+              {/* 오른쪽: 사이드바 광고 */}
+              <AdSlot position="sidebar" />
             </div>
           </div>
         </div>
       </div>
-      {showCommentToast && (
-        <div className="mt-2 text-center text-sm text-green-600 font-semibold animate-fade-in">댓글이 작성되었습니다!</div>
-      )}
       {/* 비밀번호 입력 모달 */}
       {pwModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
