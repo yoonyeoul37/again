@@ -145,15 +145,14 @@ export default function AdSlot({ position, className = '', style, ad }: AdSlotPr
             <img
               src={ad.image_url}
               alt={ad.title || '광고 이미지'}
-              className="w-full h-full object-contain bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-3 shadow-sm"
-              style={{ maxHeight: '100%', maxWidth: '100%' }}
+              className="w-full h-full object-cover rounded-lg shadow-sm"
               onError={(e) => {
                 // 이미지 로드 실패 시 대체 콘텐츠 표시
                 e.currentTarget.style.display = 'none';
                 const parent = e.currentTarget.parentElement;
                 if (parent) {
                   parent.innerHTML = `
-                    <div class="w-full h-full flex flex-col items-center justify-center text-gray-600 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-3">
+                    <div class="w-full h-full flex flex-col items-center justify-center text-gray-600 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg">
                       <div class="text-lg font-bold mb-2">📢</div>
                       <div class="text-sm font-medium text-center">${ad.title || '광고'}</div>
                       <div class="text-xs text-gray-500 mt-1">클릭하여 상세보기</div>
@@ -163,7 +162,7 @@ export default function AdSlot({ position, className = '', style, ad }: AdSlotPr
               }}
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-3">
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg">
               <div className="text-lg font-bold mb-2">📢</div>
               <div className="text-sm font-medium text-center">{ad.title || '광고'}</div>
               <div className="text-xs text-gray-500 mt-1">클릭하여 상세보기</div>

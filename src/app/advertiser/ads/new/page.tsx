@@ -185,7 +185,8 @@ export default function NewAdvertiserAdPage() {
     description: '',
     startDate: '',
     endDate: '',
-    image: null as File | null
+    image: null as File | null,
+
   });
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -474,6 +475,7 @@ export default function NewAdvertiserAdPage() {
                   placeholder="예: 개인회생, 개인파산 전문 상담"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   광고 이미지
@@ -486,8 +488,8 @@ export default function NewAdvertiserAdPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <p className="text-sm text-blue-700 font-semibold">
-                    권장 크기: <span className="font-bold">728x90px(메인/하단), 300x250px(사이드바)</span> / 최대 5MB (JPG, PNG)<br/>
-                    권장 사이즈와 다를 경우, 이미지가 잘리거나 빈 공간이 생길 수 있습니다.
+                    권장 크기: <span className="font-bold">300x300px (정사각형)</span> / 최대 5MB (JPG, PNG)
+                    <br/>권장 사이즈와 다를 경우, 이미지가 잘리거나 빈 공간이 생길 수 있습니다.
                   </p>
                   {imagePreview && (
                     <div className="mt-4">

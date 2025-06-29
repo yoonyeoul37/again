@@ -183,6 +183,9 @@ export default function AdminPage() {
             <Link href="/admin/ads" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
               광고 관리
             </Link>
+            <Link href="/admin/ads/banner" className="text-green-600 hover:text-green-700 text-sm font-medium">
+              개인광고 관리
+            </Link>
           </div>
         </div>
         

@@ -238,8 +238,9 @@ export default function HomePage() {
             style={{
               position: 'absolute',
               left: 0, top: 0, right: 0, bottom: 0,
-              background: '#f3f4f6',
-              color: '#888',
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
+              color: '#9ca3af',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -247,7 +248,7 @@ export default function HomePage() {
               zIndex: 1
             }}
           >
-            광고 준비중...
+            구글 애드센스 광고 준비중...
           </div>
         )}
         {/* 구글 애드센스 광고 */}
@@ -267,7 +268,7 @@ export default function HomePage() {
   // 로딩 중일 때 표시할 내용
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="min-h-screen bg-white">
         {/* 헤더 */}
         <header className="bg-gray-800 shadow-lg h-20">
           <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
@@ -305,7 +306,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-white">
             {/* 통합 헤더 */}
       <header className="bg-gray-800 shadow-lg h-20">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
@@ -554,13 +555,9 @@ export default function HomePage() {
 
           {/* 오른쪽 사이드바 */}
           <div className="w-80 space-y-6">
-            {/* 통합 광고 영역 */}
+            {/* 우측 내부 광고 영역 */}
             <div className="w-full flex items-center justify-center" style={{ aspectRatio: '1/1', position: 'relative', minHeight: '200px' }}>
-              {ad ? (
-                <AdSlot position="sidebar" ad={ad} className="w-full h-full" />
-              ) : (
-                <AdsenseBanner />
-              )}
+              <AdSlot position="sidebar" ad={ad} className="w-full h-full" />
             </div>
 
             {/* 인기글 */}

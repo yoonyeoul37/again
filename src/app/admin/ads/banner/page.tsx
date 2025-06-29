@@ -17,8 +17,9 @@ export default function AdminBannerAdPage() {
   const [banners, setBanners] = useState<Banner[]>([
     { image_url: "", link: "", slot_number: 1 },
     { image_url: "", link: "", slot_number: 2 },
+    { image_url: "", link: "", slot_number: 3 },
   ]);
-  const [uploading, setUploading] = useState([false, false]);
+  const [uploading, setUploading] = useState([false, false, false]);
   const [message, setMessage] = useState("");
 
   // DB에서 불러오기
@@ -32,6 +33,7 @@ export default function AdminBannerAdPage() {
         const arr = [
           data.find((b: Banner) => b.slot_number === 1) || { image_url: "", link: "", slot_number: 1 },
           data.find((b: Banner) => b.slot_number === 2) || { image_url: "", link: "", slot_number: 2 },
+          data.find((b: Banner) => b.slot_number === 3) || { image_url: "", link: "", slot_number: 3 },
         ];
         setBanners(arr);
       }
@@ -73,7 +75,7 @@ export default function AdminBannerAdPage() {
     console.log('owner_email:', user?.email);
     console.log('banners:', JSON.stringify(banners, null, 2));
     let savedCount = 0;
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
       // 이미지가 없는 배너는 저장 시도하지 않음
       if (!banners[i].image_url || banners[i].image_url === "EMPTY") {
         continue;
@@ -126,13 +128,22 @@ export default function AdminBannerAdPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-2">
-      <h1 className="text-3xl font-bold mb-10 text-center">광고 배너 관리 <span className="text-base text-gray-400">(최대 2개)</span></h1>
-      <div className="flex flex-col md:flex-row gap-8 justify-center items-stretch">
-        {[0, 1].map(idx => (
+    <div className="max-w-5xl mx-auto py-12 px-2">
+      <h1 className="text-3xl font-bold mb-10 text-center">상세페이지 좌측 개인광고 관리 <span className="text-base text-gray-400">(3개)</span></h1>
+      <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <h3 className="font-semibold text-blue-800 mb-2">📋 광고 이미지 가이드라인</h3>
+        <ul className="text-sm text-blue-700 space-y-1">
+          <li>• 권장 크기: <strong>250px × 180px</strong> (세로형)</li>
+          <li>• 파일 형식: JPG, PNG</li>
+          <li>• 파일 크기: 최대 5MB</li>
+          <li>• 상세페이지 좌측에 3개가 세로로 배치됩니다</li>
+        </ul>
+      </div>
+              <div className="flex flex-col md:flex-row gap-8 justify-center items-stretch">
+          {[0, 1, 2].map(idx => (
           <div key={idx} className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col items-center transition hover:shadow-2xl">
             <h2 className="text-lg font-semibold mb-4 flex items-center justify-between w-full">
-              <span>배너 {idx + 1}</span>
+              <span>좌측 광고 {idx + 1}</span>
               {banners[idx].image_url && (
                 <button
                   onClick={() => handleDelete(idx)}

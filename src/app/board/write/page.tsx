@@ -130,12 +130,13 @@ export default function WritePage() {
           nickname: formData.nickname,
           category: formData.category,
           created_at: new Date().toISOString(),
+          view_count: 0,
           comment_count: 0,
           images: imageUrls.join(','),
           password: formData.password,
           ...(user?.role === 'admin' ? { isNotice } : {})
         }
-      ]);
+      ]).select();
       
       console.log('insert error:', error);
       console.log('insert data:', data);
@@ -143,7 +144,12 @@ export default function WritePage() {
       if (error) {
         alert('글 저장 실패: ' + error.message);
         setIsSubmitting(false);
+      } else if (data && data.length > 0) {
+        // 작성한 글로 바로 이동
+        alert('글이 성공적으로 작성되었습니다!');
+        router.push(`/post/${data[0].id}`);
       } else {
+        alert('글이 작성되었습니다!');
         window.location.href = '/';
       }
     } catch (error) {

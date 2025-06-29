@@ -265,6 +265,9 @@ export default function AdminAdsPage() {
               <Link href="/admin/ads/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                 새 광고 등록
               </Link>
+              <Link href="/admin/ads/banner" className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                개인광고 관리
+              </Link>
               <Link href="/admin/dashboard" className="text-gray-600 hover:text-gray-700 text-sm font-medium">
                 대시보드로
               </Link>
