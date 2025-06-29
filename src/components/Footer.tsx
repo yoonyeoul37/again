@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function Footer() {
@@ -16,17 +17,15 @@ export default function Footer() {
     return '일반회원';
   };
 
-  // 디버깅용: 현재 상태 출력
-  console.log('Footer - user:', user);
-  console.log('Footer - role:', user?.role);
-  console.log('Footer - isLoading:', isLoading);
-  console.log('Footer - !user:', !user);
+
 
   return (
     <footer className="w-full bg-white border-t mt-12 py-8">
       <div className="max-w-screen-xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between text-sm text-gray-500">
         <div className="flex items-center space-x-2 mb-4 md:mb-0">
-          <span className="font-bold tracking-wide">© 2025 개인법인회생파산 커뮤니티</span>
+          <Link href="/" className="font-bold tracking-wide hover:text-blue-600 transition-colors cursor-pointer">
+            © 2025 개인법인회생파산 커뮤니티
+          </Link>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           {/* 로딩 중일 때 */}

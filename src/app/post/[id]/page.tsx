@@ -31,6 +31,7 @@ export default function PostDetailPage() {
   });
   const [relatedPosts, setRelatedPosts] = useState([]);
   const [popularPosts, setPopularPosts] = useState([]);
+  const [userLocation, setUserLocation] = useState<any>(null); // 사용자 위치 정보
 
   // 댓글 작성 폼 state
   const [commentForm, setCommentForm] = useState({
@@ -416,30 +417,17 @@ export default function PostDetailPage() {
     if (!password) return;
 
     try {
-      // 디버깅: 게시글 비밀번호 상태 확인
-      console.log('🔍 게시글 비밀번호 디버깅:', {
-        'post.password': post.password,
-        'typeof post.password': typeof post.password,
-        'post.password length': post.password?.length,
-        '입력한 password': password,
-        '입력한 password length': password.length
-      });
-
       // 게시글에 비밀번호가 설정되지 않은 경우 삭제 불가
       if (!post.password) {
         alert('이 게시글은 비밀번호가 설정되지 않아 삭제할 수 없습니다.');
-        console.log('❌ 게시글에 비밀번호가 없음');
         return;
       }
 
       // 게시글 비밀번호 확인 (실제로는 해시된 비밀번호와 비교해야 함)
       if (post.password !== password) {
         alert('비밀번호가 일치하지 않습니다.');
-        console.log('❌ 비밀번호 불일치');
         return;
       }
-
-      console.log('✅ 비밀번호 확인 완료, 삭제 진행');
 
       if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
 
@@ -844,7 +832,9 @@ export default function PostDetailPage() {
 
   useEffect(() => {
     fetchPost();
-    fetchAds();
+    if (userLocation) {
+      fetchAds(); // 위치 정보가 있을 때만 광고 가져오기
+    }
     fetchRelatedPosts();
     fetchPopularPosts();
     
@@ -858,14 +848,10 @@ export default function PostDetailPage() {
       // 글 작성자 확인
       const ownerStatus = checkPostOwner(postId);
       setIsPostOwner(ownerStatus);
-      console.log('📝 글 작성자 확인:', { postId, isOwner: ownerStatus });
     }
-  }, [postId]);
+  }, [postId, userLocation]); // userLocation 의존성 추가
 
   // AuthProvider를 사용하므로 별도의 관리자 상태 체크 불필요
-  useEffect(() => {
-    console.log('🛡️ 관리자 상태:', user?.role === 'admin');
-  }, [user]);
 
   // 실제 게시글 데이터 가져오기
   const fetchPost = async () => {
@@ -978,15 +964,17 @@ export default function PostDetailPage() {
     }
   };
 
-  // 광고 데이터 가져오기
+  // 광고 데이터 가져오기 (지역 기반)
   const fetchAds = async () => {
+    if (!userLocation) return; // 위치 정보가 없으면 대기
+    
     try {
       const { data: personalAds } = await supabase
         .from('custom_banners')
         .select('*')
         .order('slot_number');
 
-      const { data: adsData } = await supabase
+      const { data: adsData, error: adsError } = await supabase
         .from('ads')
         .select('*')
         .eq('status', 'active');
@@ -1003,13 +991,50 @@ export default function PostDetailPage() {
         }));
       }
 
-      if (adsData) {
-        sidebarAd = adsData[0] ? {
-          id: adsData[0].id,
-          title: adsData[0].title,
-          image_url: adsData[0].image_url,
-          website: adsData[0].website || '#'
-        } : null;
+      if (!adsError && adsData && adsData.length > 0) {
+        // 사용자 지역에 맞는 광고 필터링
+        const filteredAds = adsData.filter(ad => {
+          // 대도시 광고인 경우
+          if (ad.ad_type === 'major' && ad.major_city === userLocation.mappedRegion) {
+            return true;
+          }
+          
+          // 지역 광고인 경우
+          if (ad.ad_type === 'regional' && ad.regions && ad.regions.includes(userLocation.mappedRegion)) {
+            return true;
+          }
+          
+          return false;
+        });
+        
+        console.log(`🎯 상세페이지 사용자 지역(${userLocation.mappedRegion})에 맞는 광고:`, filteredAds.length, '개');
+        
+        if (filteredAds.length > 0) {
+          // 지역 맞춤 광고 중에서 랜덤 선택
+          const randomIndex = Math.floor(Math.random() * filteredAds.length);
+          const selectedAd = filteredAds[randomIndex];
+          sidebarAd = {
+            id: selectedAd.id,
+            title: selectedAd.title,
+            image_url: selectedAd.image_url,
+            website: selectedAd.website || '#'
+          };
+          console.log(`🎲 상세페이지 지역 맞춤 광고 선택: ${randomIndex + 1}/${filteredAds.length} - ${selectedAd.title}`);
+        } else {
+          // 지역 맞춤 광고가 없으면 전체 광고 중에서 랜덤 선택 (폴백)
+          const randomIndex = Math.floor(Math.random() * adsData.length);
+          const selectedAd = adsData[randomIndex];
+          sidebarAd = {
+            id: selectedAd.id,
+            title: selectedAd.title,
+            image_url: selectedAd.image_url,
+            website: selectedAd.website || '#'
+          };
+          console.log(`🎲 상세페이지 전체 광고에서 랜덤 선택 (폴백): ${randomIndex + 1}/${adsData.length} - ${selectedAd.title}`);
+        }
+      } else {
+        sidebarAd = null;
+        console.log('❌ 상세페이지 활성 광고가 없습니다.');
       }
 
       setAds({
@@ -1020,16 +1045,83 @@ export default function PostDetailPage() {
     } catch (error) {
       console.error('광고 데이터 가져오기 실패:', error);
       setAds({
-        left: [
-          { id: 1, title: '강남법무사 무료상담', image_url: '/001.jpg', website: 'https://example.com' },
-          { id: 2, title: '개인회생 전문', image_url: '/001.jpg', website: 'https://example.com' },
-          { id: 3, title: '24시간 상담가능', image_url: '/001.jpg', website: 'https://example.com' }
-        ],
+        left: [],
         right: [],
-        sidebar: { id: 6, title: '우측 메인 광고', image_url: '/001.jpg', website: 'https://example.com' }
+        sidebar: null
       });
     }
   };
+
+  // 사용자 위치 정보 가져오기 (IP 기반)
+  useEffect(() => {
+    async function getUserLocation() {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        if (response.ok) {
+          const locationData = await response.json();
+          console.log('🌍 상세페이지 사용자 위치 정보:', locationData);
+          
+                     // 한국 지역코드 매핑 (메인 페이지와 동일)
+           const regionMapping: { [key: string]: string | string[] } = {
+             'Seoul': 'seoul',
+             'Busan': 'busan', 
+             'Daegu': 'daegu',
+             'Incheon': 'incheon',
+             'Daejeon': 'daejeon',
+             'Gwangju': 'gwangju',
+             'Ulsan': 'ulsan',
+             'Sejong': 'sejong',
+             'Gyeonggi-do': ['suwon', 'seongnam', 'bucheon', 'ansan', 'anyang', 'pyeongtaek', 'goyang', 'yongin', 'hwaseong'],
+             'Gangwon-do': ['chuncheon', 'wonju', 'gangneung', 'donghae'],
+             'Chungcheongbuk-do': ['cheongju', 'chungju', 'jecheon'],
+             'Chungcheongnam-do': ['cheonan', 'asan', 'seosan', 'nonsan'],
+             'Jeollabuk-do': ['jeonju', 'iksan', 'gunsan', 'jeongeup'],
+             'Jeollanam-do': ['mokpo', 'yeosu', 'suncheon', 'naju'],
+             'Gyeongsangbuk-do': ['pohang', 'gumi', 'gyeongju', 'andong'],
+             'Gyeongsangnam-do': ['changwon', 'jinju', 'tongyeong', 'sacheon'],
+             'Jeju-do': ['jeju_city', 'seogwipo']
+           };
+
+          let userRegion = null;
+          
+          if (locationData.region) {
+            const regionKey = Object.keys(regionMapping).find(key => 
+              locationData.region.includes(key.replace('-do', '').replace('-', ''))
+            );
+            
+            if (regionKey) {
+              userRegion = regionMapping[regionKey];
+              if (Array.isArray(userRegion)) {
+                userRegion = userRegion[0];
+              }
+            }
+          }
+          
+          if (!userRegion && locationData.city) {
+            const cityName = locationData.city.toLowerCase();
+            userRegion = Object.values(regionMapping).flat().find(region => 
+              cityName.includes(region) || region.includes(cityName)
+            );
+          }
+
+          setUserLocation({
+            ...locationData,
+            mappedRegion: userRegion || 'seoul'
+          });
+          
+          console.log(`📍 상세페이지 매핑된 사용자 지역: ${userRegion || 'seoul'}`);
+          
+        } else {
+          setUserLocation({ mappedRegion: 'seoul' });
+        }
+      } catch (error) {
+        console.error('상세페이지 위치 정보 가져오기 실패:', error);
+        setUserLocation({ mappedRegion: 'seoul' });
+      }
+    }
+    
+    getUserLocation();
+  }, []);
 
   if (loading) {
     return (
@@ -1182,10 +1274,7 @@ export default function PostDetailPage() {
                       /* 관리자 전용 버튼들 */
                       <>
                         <button
-                          onClick={() => {
-                            console.log('🔴 관리자 수정 버튼 클릭됨');
-                            handleEditPost();
-                          }}
+                          onClick={handleEditPost}
                           className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded transition-colors flex items-center gap-1"
                           title="관리자 전용 수정"
                         >
@@ -1195,10 +1284,7 @@ export default function PostDetailPage() {
                           관리자 수정
                         </button>
                         <button
-                          onClick={() => {
-                            console.log('🔴 관리자 삭제 버튼 클릭됨');
-                            handleAdminDeletePost();
-                          }}
+                          onClick={handleAdminDeletePost}
                           className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors flex items-center gap-1"
                           title="관리자 전용 삭제"
                         >
@@ -1214,10 +1300,7 @@ export default function PostDetailPage() {
                       /* 글 작성자만 볼 수 있는 수정/삭제 버튼 */
                       <>
                         <button
-                          onClick={() => {
-                            console.log('🟡 글 소유자 수정 버튼 클릭됨');
-                            handleEditPost();
-                          }}
+                          onClick={handleEditPost}
                           className="px-2 py-1 bg-gray-400 hover:bg-gray-500 text-white text-xs rounded transition-colors flex items-center gap-1"
                           title="게시글 수정"
                         >
@@ -1227,10 +1310,7 @@ export default function PostDetailPage() {
                           소유자 수정
                         </button>
                         <button
-                          onClick={() => {
-                            console.log('🟡 글 소유자 삭제 버튼 클릭됨');
-                            handleDeletePost();
-                          }}
+                          onClick={handleDeletePost}
                           className="px-2 py-1 bg-red-400 hover:bg-red-500 text-white text-xs rounded transition-colors flex items-center gap-1"
                           title="게시글 삭제"
                         >
@@ -1245,10 +1325,7 @@ export default function PostDetailPage() {
                       /* 일반 사용자용 수정/삭제 버튼 (비밀번호 확인 필요) */
                       <>
                         <button
-                          onClick={() => {
-                            console.log('🟢 일반 사용자 수정 버튼 클릭됨');
-                            handleEditPost();
-                          }}
+                          onClick={handleEditPost}
                           className="px-2 py-1 bg-blue-400 hover:bg-blue-500 text-white text-xs rounded transition-colors flex items-center gap-1"
                           title="게시글 수정"
                         >
@@ -1258,10 +1335,7 @@ export default function PostDetailPage() {
                           일반 수정
                         </button>
                         <button
-                          onClick={() => {
-                            console.log('🟢 일반 사용자 삭제 버튼 클릭됨');
-                            handleDeletePost();
-                          }}
+                          onClick={handleDeletePost}
                           className="px-2 py-1 bg-red-400 hover:bg-red-500 text-white text-xs rounded transition-colors flex items-center gap-1"
                           title="게시글 삭제"
                         >

@@ -301,10 +301,27 @@ export default function AdminNewAdPage() {
         }
       }
 
-      // 관리자가 광고 등록 (advertiser_id는 null로 설정)
+      // 관리자가 광고 등록 (advertiser_id는 'admin'으로 설정)
+      console.log('등록할 광고 데이터:', {
+        advertiser_id: '00000000-0000-0000-0000-000000000000',
+        advertiser: formData.advertiser,
+        phone: formData.phone,
+        email: formData.email,
+        title: formData.title,
+        description: formData.description,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        ad_type: adType,
+        major_city: adType === 'major' ? selectedMajorCity : null,
+                    regions: adType === 'regional' ? selectedRegions : null,
+            website: formData.website,
+            image_url: imageUrl,
+            status: 'active'
+      });
+      
       const { data, error } = await supabase.from('ads').insert([
         {
-          advertiser_id: null, // 관리자가 등록한 광고는 advertiser_id를 null로 설정
+          advertiser_id: '00000000-0000-0000-0000-000000000000', // 관리자가 등록한 광고는 관리자 전용 UUID 사용
           advertiser: formData.advertiser,
           phone: formData.phone,
           email: formData.email,
@@ -322,6 +339,7 @@ export default function AdminNewAdPage() {
         }
       ]);
       if (error) {
+        console.error('Supabase 에러 상세:', error);
         alert('광고 등록 실패: ' + error.message);
         return;
       }
@@ -329,7 +347,8 @@ export default function AdminNewAdPage() {
       router.push('/admin/ads');
     } catch (error) {
       alert('광고 등록 중 오류가 발생했습니다.');
-      console.error(error);
+      console.error('광고 등록 중 오류 발생:', error);
+      alert('광고 등록 중 오류가 발생했습니다: ' + (error instanceof Error ? error.message : '알 수 없는 오류'));
     } finally {
       setIsSubmitting(false);
     }

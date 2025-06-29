@@ -73,7 +73,6 @@ export default function AdSlot({ position, className = '', style, ad }: AdSlotPr
   useEffect(() => {
     if (ad?.id && !impressionRecorded) {
       const pageUrl = window.location.href;
-      console.log('광고 노출 기록 시도:', ad.id, pageUrl);
       recordImpression(ad.id, pageUrl);
       setImpressionRecorded(true);
     }
@@ -82,7 +81,6 @@ export default function AdSlot({ position, className = '', style, ad }: AdSlotPr
   // 광고 클릭 핸들러
   const handleAdClick = async () => {
     if (ad?.id) {
-      console.log('광고 클릭 기록 시도:', ad.id);
       await recordClick(ad.id);
     }
   };

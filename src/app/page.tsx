@@ -21,6 +21,7 @@ export default function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 15;
   const [ad, setAd] = useState(null);
+  const [userLocation, setUserLocation] = useState<any>(null); // 사용자 위치 정보
 
   // localStorage에서 힘내 수 가져오기 함수
   const getCheerCount = (postId) => {
@@ -69,7 +70,6 @@ export default function HomePage() {
     // URL의 refresh 파라미터 확인
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('refresh')) {
-      console.log('🔄 새로고침 파라미터 감지, 게시글 다시 로드');
       fetchPosts();
       // URL에서 refresh 파라미터 제거
       window.history.replaceState({}, '', window.location.pathname);
@@ -92,7 +92,6 @@ export default function HomePage() {
 
   const fetchPosts = async () => {
     try {
-      console.log('📝 게시글 목록 가져오기 시작');
       
       // localStorage 정리 (손상된 데이터 제거)
       try {
@@ -260,22 +259,145 @@ export default function HomePage() {
     setCurrentPage(1);
   };
 
-  // 광고 데이터 가져오기
+  // 사용자 위치 정보 가져오기 (IP 기반)
   useEffect(() => {
-    async function fetchAd() {
-      const userRegion = 'seoul'; // 임시 하드코딩
+    async function getUserLocation() {
+      try {
+        // 무료 IP 위치 서비스 사용
+        const response = await fetch('https://ipapi.co/json/');
+        if (response.ok) {
+          const locationData = await response.json();
+          console.log('🌍 사용자 위치 정보:', locationData);
+          
+                     // 한국 지역코드 매핑
+           const regionMapping: { [key: string]: string | string[] } = {
+             'Seoul': 'seoul',
+             'Busan': 'busan', 
+             'Daegu': 'daegu',
+             'Incheon': 'incheon',
+             'Daejeon': 'daejeon',
+             'Gwangju': 'gwangju',
+             'Ulsan': 'ulsan',
+             'Sejong': 'sejong',
+             // 경기도
+             'Gyeonggi-do': ['suwon', 'seongnam', 'bucheon', 'ansan', 'anyang', 'pyeongtaek', 'goyang', 'yongin', 'hwaseong'],
+             // 강원도  
+             'Gangwon-do': ['chuncheon', 'wonju', 'gangneung', 'donghae'],
+             // 충청북도
+             'Chungcheongbuk-do': ['cheongju', 'chungju', 'jecheon'],
+             // 충청남도
+             'Chungcheongnam-do': ['cheonan', 'asan', 'seosan', 'nonsan'],
+             // 전라북도
+             'Jeollabuk-do': ['jeonju', 'iksan', 'gunsan', 'jeongeup'],
+             // 전라남도
+             'Jeollanam-do': ['mokpo', 'yeosu', 'suncheon', 'naju'],
+             // 경상북도
+             'Gyeongsangbuk-do': ['pohang', 'gumi', 'gyeongju', 'andong'],
+             // 경상남도
+             'Gyeongsangnam-do': ['changwon', 'jinju', 'tongyeong', 'sacheon'],
+             // 제주도
+             'Jeju-do': ['jeju_city', 'seogwipo']
+           };
+
+          let userRegion = null;
+          
+          // 시/도 정보로 사용자 지역 결정
+          if (locationData.region) {
+            const regionKey = Object.keys(regionMapping).find(key => 
+              locationData.region.includes(key.replace('-do', '').replace('-', ''))
+            );
+            
+            if (regionKey) {
+              userRegion = regionMapping[regionKey];
+              if (Array.isArray(userRegion)) {
+                // 도 단위인 경우 첫 번째 주요 도시 선택
+                userRegion = userRegion[0];
+              }
+            }
+          }
+          
+          // 도시명으로도 확인
+          if (!userRegion && locationData.city) {
+            const cityName = locationData.city.toLowerCase();
+            userRegion = Object.values(regionMapping).flat().find(region => 
+              cityName.includes(region) || region.includes(cityName)
+            );
+          }
+
+          setUserLocation({
+            ...locationData,
+            mappedRegion: userRegion || 'seoul' // 기본값은 서울
+          });
+          
+          console.log(`📍 매핑된 사용자 지역: ${userRegion || 'seoul'}`);
+          
+        } else {
+          console.log('❌ 위치 정보를 가져올 수 없습니다. 기본 지역(서울) 사용');
+          setUserLocation({ mappedRegion: 'seoul' });
+        }
+      } catch (error) {
+        console.error('위치 정보 가져오기 실패:', error);
+        setUserLocation({ mappedRegion: 'seoul' }); // 기본값
+      }
+    }
+    
+    getUserLocation();
+  }, []);
+
+  // 광고 데이터 가져오기 (지역 기반 필터링)
+  useEffect(() => {
+    if (!userLocation) return; // 위치 정보가 없으면 대기
+    
+    async function fetchLocationBasedAd() {
       const { data, error } = await supabase
         .from('ads')
         .select('*')
-        .or(`and(ad_type.eq.major,major_city.eq.${userRegion}),and(ad_type.eq.regional,regions.cs.{${userRegion}})`)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      if (!error && data) setAd(data);
-      else setAd(null);
+        .eq('status', 'active');
+      
+      if (!error && data && data.length > 0) {
+        // 사용자 지역에 맞는 광고 필터링
+        const filteredAds = data.filter(ad => {
+          // 대도시 광고인 경우
+          if (ad.ad_type === 'major' && ad.major_city === userLocation.mappedRegion) {
+            return true;
+          }
+          
+          // 지역 광고인 경우
+          if (ad.ad_type === 'regional' && ad.regions && ad.regions.includes(userLocation.mappedRegion)) {
+            return true;
+          }
+          
+          return false;
+        });
+        
+        console.log(`🎯 사용자 지역(${userLocation.mappedRegion})에 맞는 광고:`, filteredAds.length, '개');
+        
+        if (filteredAds.length > 0) {
+          // 지역 맞춤 광고 중에서 랜덤 선택
+          const randomIndex = Math.floor(Math.random() * filteredAds.length);
+          setAd(filteredAds[randomIndex]);
+          console.log(`🎲 지역 맞춤 광고 선택: ${randomIndex + 1}/${filteredAds.length} - ${filteredAds[randomIndex].title}`);
+        } else {
+          // 지역 맞춤 광고가 없으면 전체 광고 중에서 랜덤 선택 (폴백)
+          const randomIndex = Math.floor(Math.random() * data.length);
+          setAd(data[randomIndex]);
+          console.log(`🎲 전체 광고에서 랜덤 선택 (폴백): ${randomIndex + 1}/${data.length} - ${data[randomIndex].title}`);
+        }
+      } else {
+        setAd(null);
+        console.log('❌ 활성 광고가 없습니다.');
+      }
     }
-    fetchAd();
-  }, []);
+    
+    fetchLocationBasedAd();
+    
+    // 30초마다 광고 갱신 (지역 기반)
+    const adInterval = setInterval(() => {
+      fetchLocationBasedAd();
+    }, 30000);
+    
+    return () => clearInterval(adInterval);
+  }, [userLocation]); // userLocation이 변경될 때마다 실행
 
   // 구글 애드센스 배너 컴포넌트
   function AdsenseBanner() {
@@ -548,7 +670,6 @@ export default function HomePage() {
             <div className="flex justify-between items-center mb-6">
               <button
                 onClick={() => {
-                  console.log('🔄 수동 새로고침 버튼 클릭');
                   setLoading(true);
                   fetchPosts();
                 }}
@@ -581,11 +702,11 @@ export default function HomePage() {
               {noticePosts.map((post, idx) => (
                 <div key={post.id} className="group relative">
                   <Link href={`/post/${post.id}`} className="block">
-                    <div className="bg-gradient-to-r from-red-50 via-pink-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                    <div className="bg-gradient-to-r from-gray-50 via-gray-100 to-gray-50 border-l-4 border-gray-500 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                       {/* 공지 배지와 카테고리 */}
                       <div className="flex items-center gap-4 mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md">
+                          <div className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                             </svg>
@@ -868,7 +989,7 @@ export default function HomePage() {
                             </span>
                             <span className="flex items-center gap-1">
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 000 4zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
                               </svg>
                               {post.nickname}
                             </span>
@@ -885,9 +1006,9 @@ export default function HomePage() {
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <div className="relative">
+                                    <div className="relative">
                     <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.414L11.414 10l4.293-4.293a1 1 0 00-1.414-1.414z" clipRule="evenodd" />
                     </svg>
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                   </div>
@@ -907,7 +1028,7 @@ export default function HomePage() {
                           <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                             <span className="flex items-center gap-1">
                               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 000 4zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
                               </svg>
                               {post.nickname}
                             </span>
