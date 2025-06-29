@@ -37,3 +37,60 @@ body {
 .new-badge-animate {
   animation: new-badge-bounce 1.8s infinite !important;
 }
+
+/* 사이드바 sticky 스크롤 스타일 */
+.sidebar-sticky {
+  position: sticky !important;
+  top: 1rem !important;
+  max-height: calc(100vh - 2rem) !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+  z-index: 10;
+}
+
+.sidebar-sticky::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-sticky::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 3px;
+}
+
+.sidebar-sticky::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+.sidebar-sticky::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* 부드러운 스크롤 효과 */
+.smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* 사이드바 컨테이너 */
+.sidebar-container {
+  position: relative;
+  height: fit-content;
+}
+
+/* 완전히 새로운 sticky 사이드바 */
+.following-sidebar {
+  position: sticky !important;
+  top: 0 !important;
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+  z-index: 100 !important;
+  background: transparent !important;
+}
+
+/* 모바일에서는 숨김 */
+@media (max-width: 1024px) {
+  .following-sidebar {
+    display: none !important;
+  }
+}

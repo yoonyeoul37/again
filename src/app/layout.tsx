@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const notoSansKR = Noto_Sans_KR({ 
+  subsets: ["latin"],
+  weight: ["400", "500", "700"]
+});
 
 export const metadata: Metadata = {
-  title: "힘내톡톡",
-  description: "신용회복, 개인회생, 재도전 정보를 나누는 커뮤니티"
+  title: "자유 커뮤니티",
+  description: "자유롭게 소통하는 공간입니다"
 };
 
 export default function RootLayout({
@@ -31,12 +33,9 @@ export default function RootLayout({
           crossOrigin="anonymous"
         ></script>
       </head>
-      <body className={inter.className}>
+      <body className={notoSansKR.className}>
         <AuthProvider>
-          <Header />
-          <main className="min-h-screen bg-gray-50">
-            {children}
-          </main>
+          {children}
           <Footer />
         </AuthProvider>
       </body>

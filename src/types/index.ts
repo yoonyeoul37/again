@@ -3,37 +3,41 @@ export interface Post {
   title: string;
   content: string;
   nickname: string;
-  category: '개인회생' | '법인회생' | '법인파산' | '워크아웃' | '신용회복위원회' | '대출' | '신용카드' | '신용점수' | '회생절차' | '상환계획' | '법무사상담' | '회생비용' | '파산비용' | '재산관리' | '면책결정' | '신용회복' | '인가결정' | '셀프신청' | '개인신청' | '취업';
-  createdAt: string;
-  viewCount: number;
-  commentCount: number;
+  category: string;
+  created_at: string;
+  view_count: number;
+  comment_count: number;
   likes: number;
-  images?: string[];
+  images?: string | string[];
   isNotice?: boolean;
+  password?: string;
 }
 
 export interface Comment {
   id: string;
-  postId: string;
+  post_id: string;
   content: string;
   nickname: string;
-  createdAt: string;
-  parentId: string | null;
+  created_at: string;
+  parent_id: string | null;
+  password?: string;
+  replies?: Comment[];
+  isEditing?: boolean;
 }
 
 export interface PostFormData {
   title: string;
   content: string;
   nickname: string;
-  category: '개인회생' | '법인회생' | '법인파산' | '워크아웃' | '신용점수' | '회생절차' | '상환계획' | '법무사상담' | '회생비용' | '파산비용' | '재산관리' | '면책결정' | '신용회복' | '인가결정' | '셀프신청' | '개인신청' | '취업';
+  category: string;
   password: string;
 }
 
 export interface CommentFormData {
   content: string;
   nickname: string;
-  parentId: string | null;
   password: string;
+  parent_id?: string | null;
 }
 
 export interface Ad {

@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/components/AuthProvider";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faImage } from '@fortawesome/free-solid-svg-icons';
 
 interface Banner {
   id?: number;
@@ -124,38 +126,57 @@ export default function AdminBannerAdPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto py-12">
-      <h1 className="text-2xl font-bold mb-8">광고 배너 관리 (최대 2개)</h1>
-      {[0, 1].map(idx => (
-        <div key={idx} className="mb-8 p-6 bg-white rounded-xl shadow border border-gray-200">
-          <h2 className="text-lg font-semibold mb-4 flex items-center">배너 {idx + 1}
-            {/* 삭제 버튼 */}
-            {banners[idx].image_url && (
-              <button
-                onClick={() => handleDelete(idx)}
-                className="ml-3 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
-              >
-                삭제
-              </button>
-            )}
-          </h2>
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">이미지 업로드</label>
-            <input type="file" accept="image/*" onChange={e => handleImageChange(idx, e)} disabled={uploading[idx]} />
-            {banners[idx].image_url && (
-              <div className="mt-2">
-                <img src={banners[idx].image_url} alt={`배너${idx+1} 미리보기`} className="w-60 h-20 object-contain rounded border" />
+    <div className="max-w-3xl mx-auto py-12 px-2">
+      <h1 className="text-3xl font-bold mb-10 text-center">광고 배너 관리 <span className="text-base text-gray-400">(최대 2개)</span></h1>
+      <div className="flex flex-col md:flex-row gap-8 justify-center items-stretch">
+        {[0, 1].map(idx => (
+          <div key={idx} className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col items-center transition hover:shadow-2xl">
+            <h2 className="text-lg font-semibold mb-4 flex items-center justify-between w-full">
+              <span>배너 {idx + 1}</span>
+              {banners[idx].image_url && (
+                <button
+                  onClick={() => handleDelete(idx)}
+                  className="ml-3 px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-xs shadow"
+                >
+                  삭제
+                </button>
+              )}
+            </h2>
+            <div className="mb-4 w-full flex flex-col items-center">
+              <label className="block text-sm font-medium mb-2 text-gray-700">이미지 미리보기</label>
+              <div className="w-full h-32 bg-gray-50 rounded-lg flex items-center justify-center border border-dashed border-gray-200 overflow-hidden mb-2">
+                {banners[idx].image_url ? (
+                  <img src={banners[idx].image_url} alt={`배너${idx+1} 미리보기`} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-gray-300 text-sm">이미지 없음</span>
+                )}
               </div>
-            )}
+              <div className="flex items-center w-full gap-2">
+                <label htmlFor={`file-upload-${idx}`} className="flex items-center gap-2 cursor-pointer px-4 py-2 bg-blue-50 text-blue-700 rounded-lg font-semibold hover:bg-blue-100 transition text-sm">
+                  <FontAwesomeIcon icon={faImage} className="text-blue-400 text-xl" />
+                  <span>이미지 선택</span>
+                  <input
+                    id={`file-upload-${idx}`}
+                    type="file"
+                    accept="image/*"
+                    onChange={e => handleImageChange(idx, e)}
+                    disabled={uploading[idx]}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="mb-4 w-full">
+              <label className="block text-sm font-medium mb-2 text-gray-700">광고 링크(URL)</label>
+              <input type="text" value={banners[idx].link} onChange={e => handleLinkChange(idx, e)} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 transition text-sm" placeholder="https://your-website.com" />
+            </div>
           </div>
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">광고 링크(URL)</label>
-            <input type="text" value={banners[idx].link} onChange={e => handleLinkChange(idx, e)} className="w-full px-3 py-2 border rounded" placeholder="https://your-website.com" />
-          </div>
-        </div>
-      ))}
-      <button onClick={handleSave} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">저장</button>
-      {message && <div className="mt-4 text-green-600 font-semibold">{message}</div>}
+        ))}
+      </div>
+      <div className="flex justify-center mt-10">
+        <button onClick={handleSave} className="px-8 py-3 bg-blue-600 text-white rounded-xl text-lg font-semibold shadow hover:bg-blue-700 transition">저장</button>
+      </div>
+      {message && <div className="mt-6 text-center text-green-600 font-semibold text-base">{message}</div>}
     </div>
   );
 } 

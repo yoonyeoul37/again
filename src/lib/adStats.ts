@@ -8,14 +8,13 @@ export async function recordImpression(adId: number, pageUrl: string) {
       .insert({
         ad_id: adId,
         page_url: pageUrl,
-        user_ip: 'client_ip', // 실제로는 서버에서 IP 가져오기
         user_agent: navigator.userAgent
       })
       .select()
       .single();
 
     if (error) {
-      console.error('Impression 기록 실패:', error);
+      console.error('Impression 기록 실패:', JSON.stringify(error));
       return null;
     }
 
