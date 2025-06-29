@@ -26,6 +26,7 @@ export default function PostDetailPage() {
     sidebar: null
   });
   const [relatedPosts, setRelatedPosts] = useState([]);
+  const [popularPosts, setPopularPosts] = useState([]);
 
   // 댓글 작성 폼 state
   const [commentForm, setCommentForm] = useState({
@@ -36,18 +37,17 @@ export default function PostDetailPage() {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   // 답글 관련 state
-  const [replyForms, setReplyForms] = useState({}); // 각 댓글별 답글 폼
-  const [showReplyForm, setShowReplyForm] = useState({}); // 답글 폼 표시 여부
+  const [replyForms, setReplyForms] = useState({});
+  const [showReplyForm, setShowReplyForm] = useState({});
   const [isSubmittingReply, setIsSubmittingReply] = useState({});
 
   // 수정/삭제 관련 state
-  const [editingComment, setEditingComment] = useState(null); // 수정 중인 댓글 ID
-  const [editForm, setEditForm] = useState({ password: '', content: '' }); // 수정 폼
-  const [deleteForm, setDeleteForm] = useState({ password: '' }); // 삭제 폼
-  const [showDeleteModal, setShowDeleteModal] = useState(null); // 삭제 모달 표시 댓글 ID
+  const [editingComment, setEditingComment] = useState(null);
+  const [editForm, setEditForm] = useState({ password: '', content: '' });
+  const [deleteForm, setDeleteForm] = useState({ password: '' });
+  const [showDeleteModal, setShowDeleteModal] = useState(null);
 
-  // 추천/힘내 버튼 관련 state
-  const [isLiking, setIsLiking] = useState(false);
+  // 힘내 버튼 관련 state
   const [isCheering, setIsCheering] = useState(false);
 
   // 게시글 수정/삭제 관련 state
@@ -74,14 +74,6 @@ export default function PostDetailPage() {
     likes: 5,
     cheers: 12
   };
-
-  const popularPosts = [
-    { id: 1, title: '개인회생 vs 개인파산 차이점', nickname: '전문가', view_count: 234, comment_count: 12 },
-    { id: 2, title: '신용회복위원회 워크아웃 후기', nickname: '경험담', view_count: 189, comment_count: 8 },
-    { id: 3, title: '법무사 비용 얼마나 드나요?', nickname: '질문자', view_count: 167, comment_count: 15 },
-    { id: 4, title: '회생계획 인가 후 주의사항', nickname: '조언자', view_count: 145, comment_count: 6 },
-    { id: 5, title: '면책 결정까지 기간은?', nickname: '궁금이', view_count: 123, comment_count: 9 }
-  ];
 
   const sampleComments = [
     {
@@ -110,6 +102,22 @@ export default function PostDetailPage() {
     }
   ];
 
+  const samplePopularPosts = [
+    { id: 1, title: '개인회생 vs 개인파산 차이점', nickname: '전문가', view_count: 234, comment_count: 12 },
+    { id: 2, title: '신용회복위원회 워크아웃 후기', nickname: '경험담', view_count: 189, comment_count: 8 },
+    { id: 3, title: '법무사 비용 얼마나 드나요?', nickname: '질문자', view_count: 167, comment_count: 15 },
+    { id: 4, title: '회생계획 인가 후 주의사항', nickname: '조언자', view_count: 145, comment_count: 6 },
+    { id: 5, title: '면책 결정까지 기간은?', nickname: '궁금이', view_count: 123, comment_count: 9 }
+  ];
+
+  const sampleRelatedPosts = [
+    { id: 101, title: '개인회생 vs 개인파산 차이점이 궁금해요', nickname: '질문자', category: '개인회생', created_at: '2024-01-20', view_count: 234, comment_count: 12 },
+    { id: 102, title: '신용회복위원회 워크아웃 신청 후기', nickname: '경험담', category: '워크아웃', created_at: '2024-01-19', view_count: 189, comment_count: 8 },
+    { id: 103, title: '법무사 비용 얼마나 드나요?', nickname: '준비중', category: '법무사상담', created_at: '2024-01-19', view_count: 167, comment_count: 15 },
+    { id: 104, title: '회생계획 인가 후 주의사항들', nickname: '조언자', category: '회생절차', created_at: '2024-01-18', view_count: 145, comment_count: 6 },
+    { id: 105, title: '면책 결정까지 기간은 보통 얼마나?', nickname: '궁금이', category: '개인파산', created_at: '2024-01-18', view_count: 123, comment_count: 9 }
+  ];
+
   // 구글 애드센스 배너 컴포넌트
   function AdsenseBanner({ position = 'horizontal' }) {
     const isDev = process.env.NODE_ENV === 'development';
@@ -117,7 +125,7 @@ export default function PostDetailPage() {
     const [adLoaded, setAdLoaded] = useState(false);
 
     useEffect(() => {
-      if (isDev) return; // 개발 환경에서는 실행하지 않음
+      if (isDev) return;
       
       const loadAd = () => {
         try {
@@ -132,24 +140,10 @@ export default function PostDetailPage() {
         }
       };
 
-      const checkAd = () => {
-        if (adRef.current) {
-          const hasIframe = adRef.current.querySelector('iframe');
-          setAdLoaded(!!hasIframe);
-        }
-      };
-
-      // 짧은 지연 후 광고 로드 시도
       const timer = setTimeout(loadAd, 100);
-      const interval = setInterval(checkAd, 500);
-      
-      return () => {
-        clearTimeout(timer);
-        clearInterval(interval);
-      };
+      return () => clearTimeout(timer);
     }, [isDev]);
 
-    // 개발 환경에서는 플레이스홀더만 표시
     if (isDev) {
       return (
         <div className="w-full flex items-center justify-center" style={{ 
@@ -172,26 +166,6 @@ export default function PostDetailPage() {
         height: position === 'horizontal' ? '180px' : '200px',
         minHeight: position === 'horizontal' ? '180px' : '200px' 
       }}>
-        {/* 광고 더미 (광고가 없을 때만 보임) */}
-        {!adLoaded && (
-          <div
-            style={{
-              position: 'absolute',
-              left: 0, top: 0, right: 0, bottom: 0,
-              background: '#ffffff',
-              border: '1px solid #e5e7eb',
-              color: '#9ca3af',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '12px',
-              zIndex: 1
-            }}
-          >
-            구글 애드센스 광고 준비중...
-          </div>
-        )}
-        {/* 구글 애드센스 광고 */}
         <ins
           ref={adRef}
           className="adsbygoogle"
@@ -204,7 +178,6 @@ export default function PostDetailPage() {
           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
           data-ad-slot="YOUR_SLOT_ID"
           data-ad-format={position === 'horizontal' ? 'horizontal' : 'rectangle'}
-          data-full-width-responsive="false"
         />
       </div>
     );
@@ -214,28 +187,8 @@ export default function PostDetailPage() {
     fetchPost();
     fetchAds();
     fetchRelatedPosts();
+    fetchPopularPosts();
   }, [postId]);
-
-  // 추천/힘내요 수 로드
-  const loadLikesAndCheers = () => {
-    try {
-      const likesKey = `post_likes_${postId}`;
-      const cheersKey = `post_cheers_${postId}`;
-      
-      const savedLikes = parseInt(localStorage.getItem(likesKey) || '0');
-      const savedCheers = parseInt(localStorage.getItem(cheersKey) || '0');
-      
-      setPost(prev => prev ? ({
-        ...prev,
-        likes: (prev.likes || 0) + savedLikes,
-        cheers: (prev.cheers || 0) + savedCheers
-      }) : null);
-      
-      console.log(`💾 저장된 데이터 로드: 추천 ${savedLikes}개, 힘내요 ${savedCheers}개`);
-    } catch (error) {
-      console.error('추천/힘내요 데이터 로드 실패:', error);
-    }
-  };
 
   // 실제 게시글 데이터 가져오기
   const fetchPost = async () => {
@@ -248,7 +201,6 @@ export default function PostDetailPage() {
       
       if (error) {
         console.error('게시글 가져오기 실패:', error);
-        // 에러 시 샘플 데이터 사용
         setPost(samplePost);
       } else {
         setPost(data);
@@ -263,49 +215,25 @@ export default function PostDetailPage() {
       setPost(samplePost);
     }
     
-    // 추천/힘내요 데이터 로드
-    setTimeout(() => {
-      loadLikesAndCheers();
-    }, 100);
-    
     // 댓글 로딩
     loadCommentsFromStorage();
     setLoading(false);
   };
 
-  // 실제 댓글 데이터 가져오기
+  // 댓글 데이터 가져오기
   const loadCommentsFromStorage = async () => {
     try {
-      console.log('댓글 로딩 시작:', postId);
-      
-      // 실제 데이터베이스에서 댓글 가져오기 시도
       const { data, error } = await supabase
         .from('comments')
         .select('*')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
       
-      console.log('댓글 데이터:', data);
-      console.log('댓글 에러:', error);
-      
       if (!error && data) {
-        console.log('원본 댓글 상세:', data.map(c => ({ 
-          id: c.id, 
-          nickname: c.nickname, 
-          parent_id: c.parent_id,
-          content: c.content.substring(0, 20) + '...'
-        })));
+        const parentComments = data.filter(comment => comment.parent_id === null);
+        const allReplies = data.filter(comment => comment.parent_id !== null);
         
-        // 계층적 구조로 변환 (부모 댓글과 답글 분리)
-        const parentComments = data.filter(comment => comment.parent_id === null || comment.parent_id === undefined);
-        const allReplies = data.filter(comment => comment.parent_id !== null && comment.parent_id !== undefined);
-        
-        console.log('부모 댓글:', parentComments.length, parentComments.map(c => c.id));
-        console.log('모든 답글:', allReplies.length, allReplies.map(c => ({ id: c.id, parent_id: c.parent_id })));
-        
-        // 각 원댓글에 대해 관련된 모든 답글 찾기 (답글의 답글 포함)
         const commentsWithReplies = parentComments.map(parent => {
-          // 해당 원댓글과 관련된 모든 답글 찾기 (재귀적으로)
           const findAllReplies = (parentId) => {
             const directReplies = allReplies.filter(reply => reply.parent_id === parentId);
             const nestedReplies = directReplies.flatMap(reply => findAllReplies(reply.id));
@@ -313,7 +241,6 @@ export default function PostDetailPage() {
           };
           
           const allRelatedReplies = findAllReplies(parent.id);
-          // 시간순으로 정렬
           allRelatedReplies.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
           
           return {
@@ -322,52 +249,19 @@ export default function PostDetailPage() {
           };
         });
         
-        console.log('변환된 댓글:', commentsWithReplies);
-        console.log('각 댓글의 답글 수:', commentsWithReplies.map(c => ({ id: c.id, repliesCount: c.replies.length })));
-        
         setComments(commentsWithReplies);
-        return commentsWithReplies;
       } else {
-        // 댓글 테이블이 없거나 에러 시 localStorage 사용
-        console.log('데이터베이스 실패, localStorage 사용');
-        const storageKey = `comments_${postId}`;
-        const savedComments = localStorage.getItem(storageKey);
-        if (savedComments) {
-          try {
-            const parsedComments = JSON.parse(savedComments);
-            console.log('localStorage에서 로딩된 댓글:', parsedComments);
-            setComments(parsedComments);
-            return parsedComments;
-          } catch (e) {
-            console.error('localStorage 댓글 데이터 손상, 제거:', e);
-            localStorage.removeItem(storageKey);
-            // 손상된 데이터 제거 후 샘플 데이터 사용
-            console.log('샘플 댓글 사용');
-            setComments(sampleComments);
-            localStorage.setItem(storageKey, JSON.stringify(sampleComments));
-            return sampleComments;
-          }
-        } else {
-          // 저장된 댓글이 없으면 샘플 댓글 사용
-          console.log('샘플 댓글 사용');
-          setComments(sampleComments);
-          localStorage.setItem(storageKey, JSON.stringify(sampleComments));
-          return sampleComments;
-        }
+        setComments(sampleComments);
       }
     } catch (error) {
       console.error('댓글 로딩 실패:', error);
       setComments(sampleComments);
-      return sampleComments;
     }
   };
-
-
 
   // 관련 게시글 가져오기
   const fetchRelatedPosts = async () => {
     try {
-      console.log('관련 게시글 가져오기 시작');
       const { data, error } = await supabase
         .from('posts')
         .select('*')
@@ -375,67 +269,55 @@ export default function PostDetailPage() {
         .order('created_at', { ascending: false })
         .limit(10);
       
-      console.log('관련 게시글 결과:', { data, error });
-      
       if (!error && data && data.length > 0) {
-        console.log(`관련 게시글 ${data.length}개 로드됨`);
         setRelatedPosts(data);
       } else {
-        console.log('데이터베이스 실패 또는 데이터 없음, 샘플 데이터 사용');
-        // 실제 데이터베이스에서 모든 게시글을 다시 시도
-        const { data: allPosts, error: allError } = await supabase
-          .from('posts')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(15);
-          
-        if (!allError && allPosts && allPosts.length > 0) {
-          // 현재 게시글 제외한 최신 게시글들
-          const filteredPosts = allPosts.filter(post => post.id !== postId).slice(0, 10);
-          console.log(`전체 게시글에서 ${filteredPosts.length}개 필터링됨`);
-          setRelatedPosts(filteredPosts);
-        } else {
-          // 최종적으로 샘플 데이터 사용
-          console.log('최종 샘플 데이터 사용');
-          setRelatedPosts([
-            { id: 101, title: '개인회생 vs 개인파산 차이점이 궁금해요', nickname: '질문자', category: '개인회생', created_at: '2024-01-20', view_count: 234, comment_count: 12, isNotice: false },
-            { id: 102, title: '신용회복위원회 워크아웃 신청 후기', nickname: '경험담', category: '워크아웃', created_at: '2024-01-19', view_count: 189, comment_count: 8, isNotice: false },
-            { id: 103, title: '법무사 비용 얼마나 드나요?', nickname: '준비중', category: '법무사상담', created_at: '2024-01-19', view_count: 167, comment_count: 15, isNotice: false },
-            { id: 104, title: '회생계획 인가 후 주의사항들', nickname: '조언자', category: '회생절차', created_at: '2024-01-18', view_count: 145, comment_count: 6, isNotice: false },
-            { id: 105, title: '면책 결정까지 기간은 보통 얼마나?', nickname: '궁금이', category: '개인파산', created_at: '2024-01-18', view_count: 123, comment_count: 9, isNotice: false },
-            { id: 106, title: '신용점수 회복 방법 공유합니다', nickname: '회복중', category: '신용점수', created_at: '2024-01-17', view_count: 201, comment_count: 18, isNotice: false },
-            { id: 107, title: '대출 정리하고 개인회생 신청했어요', nickname: '새출발', category: '대출관련', created_at: '2024-01-17', view_count: 178, comment_count: 11, isNotice: false },
-            { id: 108, title: '변호사 vs 법무사 어떤 차이가?', nickname: '고민남', category: '변호사상담', created_at: '2024-01-16', view_count: 156, comment_count: 7, isNotice: false }
-          ]);
-        }
+        setRelatedPosts(sampleRelatedPosts);
       }
     } catch (error) {
       console.error('관련 게시글 가져오기 실패:', error);
-      setRelatedPosts([]);
+      setRelatedPosts(sampleRelatedPosts);
+    }
+  };
+
+  // 실시간 인기글 가져오기
+  const fetchPopularPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .neq('id', postId)
+        .order('view_count', { ascending: false })
+        .limit(5);
+      
+      if (!error && data && data.length > 0) {
+        setPopularPosts(data);
+      } else {
+        setPopularPosts(samplePopularPosts);
+      }
+    } catch (error) {
+      console.error('실시간 인기글 가져오기 실패:', error);
+      setPopularPosts(samplePopularPosts);
     }
   };
 
   // 광고 데이터 가져오기
   const fetchAds = async () => {
     try {
-      // 개인광고 (좌측) 가져오기
-      const { data: personalAds, error: personalError } = await supabase
+      const { data: personalAds } = await supabase
         .from('custom_banners')
         .select('*')
         .order('slot_number');
 
-      // 광고주 광고 (우측) 가져오기
-      const { data: adsData, error: adsError } = await supabase
+      const { data: adsData } = await supabase
         .from('ads')
         .select('*')
         .eq('status', 'active');
 
       let leftAds = [];
-      let rightAds = [];
       let sidebarAd = null;
 
-      // 개인광고 처리 (좌측 3개)
-      if (!personalError && personalAds) {
+      if (personalAds) {
         leftAds = personalAds.slice(0, 3).map(ad => ({
           id: ad.id,
           title: `개인광고 ${ad.slot_number}`,
@@ -444,9 +326,7 @@ export default function PostDetailPage() {
         }));
       }
 
-      // 광고주 광고 처리 (우측 사이드바)
-      if (!adsError && adsData) {
-        // 우측 사이드바용 광고 (광고주들의 광고 중에서)
+      if (adsData) {
         sidebarAd = adsData[0] ? {
           id: adsData[0].id,
           title: adsData[0].title,
@@ -457,12 +337,11 @@ export default function PostDetailPage() {
 
       setAds({
         left: leftAds,
-        right: rightAds,
+        right: [],
         sidebar: sidebarAd
       });
     } catch (error) {
       console.error('광고 데이터 가져오기 실패:', error);
-      // 기본 샘플 데이터 사용
       setAds({
         left: [
           { id: 1, title: '강남법무사 무료상담', image_url: '/001.jpg', website: 'https://example.com' },
@@ -473,732 +352,6 @@ export default function PostDetailPage() {
         sidebar: { id: 6, title: '우측 메인 광고', image_url: '/001.jpg', website: 'https://example.com' }
       });
     }
-  };
-
-  // 댓글 입력 핸들러
-  const handleCommentChange = (e) => {
-    const { name, value } = e.target;
-    setCommentForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // 댓글 등록 함수
-  const handleCommentSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!commentForm.nickname.trim()) {
-      alert('닉네임을 입력해주세요.');
-      return;
-    }
-    if (!commentForm.password.trim()) {
-      alert('비밀번호를 입력해주세요.');
-      return;
-    }
-    if (!commentForm.content.trim()) {
-      alert('댓글 내용을 입력해주세요.');
-      return;
-    }
-
-    setIsSubmittingComment(true);
-    console.log('댓글 등록 시작:', commentForm);
-
-    try {
-      // 새 댓글 객체 미리 생성
-      const newComment = {
-        id: Date.now(), // 임시 ID
-        nickname: commentForm.nickname,
-        content: commentForm.content,
-        created_at: new Date().toISOString(),
-        password: commentForm.password,
-        parent_id: null,
-        replies: []
-      };
-
-      // 즉시 UI 업데이트 (사용자 경험 개선)
-      const immediateUpdatedComments = [...comments, newComment];
-      setComments(immediateUpdatedComments);
-      console.log('즉시 UI 업데이트:', immediateUpdatedComments);
-
-      // 실제 데이터베이스에 댓글 저장
-      const { data, error } = await supabase
-        .from('comments')
-        .insert([{
-          post_id: postId,
-          nickname: commentForm.nickname,
-          content: commentForm.content,
-          password: commentForm.password,
-          created_at: new Date().toISOString(),
-          parent_id: null
-        }])
-        .select();
-
-      console.log('댓글 등록 결과:', { data, error });
-
-      if (!error && data) {
-        console.log('댓글 등록 성공, 최신 댓글 로딩');
-        // 성공적으로 저장되면 댓글 목록 새로고침 (실제 ID로 업데이트)
-        await loadCommentsFromStorage();
-        
-        // 게시글 댓글 수 업데이트
-        await supabase
-          .from('posts')
-          .update({ comment_count: (post?.comment_count || 0) + 1 })
-          .eq('id', postId);
-        
-        setPost(prev => prev ? ({
-          ...prev,
-          comment_count: prev.comment_count + 1
-        }) : null);
-        
-      } else {
-        console.log('댓글 등록 실패, localStorage 사용');
-        // 데이터베이스 저장 실패 시 로컬 저장 사용
-        // localStorage에 저장
-        try {
-          const storageKey = `comments_${postId}`;
-          const jsonString = JSON.stringify(immediateUpdatedComments);
-          localStorage.setItem(storageKey, jsonString);
-          console.log('댓글 localStorage 저장 성공');
-        } catch (storageError) {
-          console.error('댓글 localStorage 저장 실패:', storageError);
-          // localStorage 용량 초과 등의 문제 시 기존 데이터 정리
-          try {
-            const keys = Object.keys(localStorage);
-            keys.filter(key => key.startsWith('comments_')).forEach(key => {
-              if (key !== `comments_${postId}`) {
-                localStorage.removeItem(key);
-              }
-            });
-            localStorage.setItem(`comments_${postId}`, JSON.stringify(immediateUpdatedComments));
-          } catch (e) {
-            console.error('localStorage 정리 후에도 저장 실패:', e);
-          }
-        }
-        
-        // 게시글 댓글 수 업데이트
-        setPost(prev => prev ? ({
-          ...prev,
-          comment_count: prev.comment_count + 1
-        }) : null);
-      }
-
-      // 폼 초기화
-      setCommentForm({
-        nickname: '',
-        password: '',
-        content: ''
-      });
-
-      alert('댓글이 등록되었습니다.');
-
-    } catch (error) {
-      console.error('댓글 등록 실패:', error);
-      // 에러 발생 시 UI를 원래 상태로 복원
-      await loadCommentsFromStorage();
-      alert('댓글 등록에 실패했습니다.');
-    } finally {
-      setIsSubmittingComment(false);
-    }
-  };
-
-  // 답글 폼 토글
-  const toggleReplyForm = (commentId) => {
-    setShowReplyForm(prev => ({
-      ...prev,
-      [commentId]: !prev[commentId]
-    }));
-    
-    // 답글 폼 초기화
-    if (!showReplyForm[commentId]) {
-      setReplyForms(prev => ({
-        ...prev,
-        [commentId]: { nickname: '', password: '', content: '' }
-      }));
-    }
-  };
-
-  // 답글 입력 핸들러
-  const handleReplyChange = (commentId, e) => {
-    const { name, value } = e.target;
-    setReplyForms(prev => ({
-      ...prev,
-      [commentId]: {
-        ...prev[commentId],
-        [name]: value
-      }
-    }));
-  };
-
-  // 답글 등록 함수
-  const handleReplySubmit = async (commentId, e) => {
-    e.preventDefault();
-    
-    const replyForm = replyForms[commentId];
-    if (!replyForm?.nickname?.trim()) {
-      alert('닉네임을 입력해주세요.');
-      return;
-    }
-    if (!replyForm?.password?.trim()) {
-      alert('비밀번호를 입력해주세요.');
-      return;
-    }
-    if (!replyForm?.content?.trim()) {
-      alert('답글 내용을 입력해주세요.');
-      return;
-    }
-
-    setIsSubmittingReply(prev => ({ ...prev, [commentId]: true }));
-    console.log('답글 등록 시작:', commentId, replyForm);
-
-    try {
-      // 새 답글 객체 미리 생성
-      const newReply = {
-        id: Date.now(), // 임시 ID
-        nickname: replyForm.nickname,
-        content: replyForm.content,
-        created_at: new Date().toISOString(),
-        parent_id: commentId
-      };
-
-      // 즉시 UI 업데이트 (사용자 경험 개선)
-      const immediateUpdatedComments = comments.map(comment => {
-        // 해당 댓글이나 그 답글에 새 답글이 달리는 경우
-        if (comment.id === commentId || (comment.replies && comment.replies.some(r => r.id === commentId))) {
-          return { ...comment, replies: [...(comment.replies || []), newReply] };
-        }
-        return comment;
-      });
-      setComments(immediateUpdatedComments);
-      console.log('답글 즉시 UI 업데이트:', immediateUpdatedComments);
-
-      // 실제 데이터베이스에 답글 저장
-      const { data, error } = await supabase
-        .from('comments')
-        .insert([{
-          post_id: postId,
-          nickname: replyForm.nickname,
-          content: replyForm.content,
-          password: replyForm.password,
-          created_at: new Date().toISOString(),
-          parent_id: commentId
-        }])
-        .select();
-
-      console.log('답글 등록 결과:', { data, error });
-
-      if (!error && data) {
-        console.log('답글 등록 성공, 최신 댓글 로딩');
-        // 성공적으로 저장되면 댓글 목록 새로고침 (실제 ID로 업데이트)
-        await loadCommentsFromStorage();
-        
-        // 게시글 댓글 수 업데이트 (답글도 댓글 수에 포함)
-        await supabase
-          .from('posts')
-          .update({ comment_count: (post?.comment_count || 0) + 1 })
-          .eq('id', postId);
-        
-        setPost(prev => prev ? ({
-          ...prev,
-          comment_count: prev.comment_count + 1
-        }) : null);
-        
-      } else {
-        console.log('답글 등록 실패, localStorage 사용');
-        // 데이터베이스 저장 실패 시 로컬 저장 사용
-        // localStorage에 저장
-        try {
-          const storageKey = `comments_${postId}`;
-          localStorage.setItem(storageKey, JSON.stringify(immediateUpdatedComments));
-        } catch (storageError) {
-          console.error('답글 localStorage 저장 실패:', storageError);
-        }
-
-        // 게시글 댓글 수 업데이트 (답글도 댓글 수에 포함)
-        setPost(prev => prev ? ({
-          ...prev,
-          comment_count: prev.comment_count + 1
-        }) : null);
-      }
-
-      // 답글 폼 초기화 및 숨기기
-      setReplyForms(prev => ({
-        ...prev,
-        [commentId]: { nickname: '', password: '', content: '' }
-      }));
-      setShowReplyForm(prev => ({ ...prev, [commentId]: false }));
-
-      alert('답글이 등록되었습니다.');
-
-    } catch (error) {
-      console.error('답글 등록 실패:', error);
-      // 에러 발생 시 UI를 원래 상태로 복원
-      await loadCommentsFromStorage();
-      alert('답글 등록에 실패했습니다.');
-    } finally {
-      setIsSubmittingReply(prev => ({ ...prev, [commentId]: false }));
-    }
-  };
-
-  // 댓글 수정 시작
-  const startEdit = (comment) => {
-    setEditingComment(comment.id);
-    setEditForm({ password: '', content: comment.content });
-  };
-
-  // 댓글 수정 취소
-  const cancelEdit = () => {
-    setEditingComment(null);
-    setEditForm({ password: '', content: '' });
-  };
-
-  // 댓글 수정 제출
-  const handleEditSubmit = async (commentId, e) => {
-    e.preventDefault();
-    
-    if (!editForm.password.trim()) {
-      alert('비밀번호를 입력해주세요.');
-      return;
-    }
-    if (!editForm.content.trim()) {
-      alert('댓글 내용을 입력해주세요.');
-      return;
-    }
-
-    try {
-      // 실제 데이터베이스에서 수정
-      const { data, error } = await supabase
-        .from('comments')
-        .update({ 
-          content: editForm.content,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', commentId)
-        .eq('password', editForm.password)
-        .select();
-
-      if (!error && data && data.length > 0) {
-        // 성공적으로 수정되면 댓글 목록 새로고침
-        await loadCommentsFromStorage();
-        cancelEdit();
-        alert('댓글이 수정되었습니다.');
-      } else {
-        // 데이터베이스 수정 실패 시 로컬 저장소 사용
-        const updateLocalComments = (comments) => {
-          return comments.map(comment => {
-            if (comment.id === commentId) {
-              return { ...comment, content: editForm.content };
-            }
-            if (comment.replies) {
-              return {
-                ...comment,
-                replies: comment.replies.map(reply => 
-                  reply.id === commentId ? { ...reply, content: editForm.content } : reply
-                )
-              };
-            }
-            return comment;
-          });
-        };
-
-        const updatedComments = updateLocalComments(comments);
-        setComments(updatedComments);
-        
-        try {
-          const storageKey = `comments_${postId}`;
-          localStorage.setItem(storageKey, JSON.stringify(updatedComments));
-        } catch (error) {
-          console.error('댓글 수정 저장 실패:', error);
-        }
-        
-        cancelEdit();
-        alert('댓글이 수정되었습니다.');
-      }
-    } catch (error) {
-      console.error('댓글 수정 실패:', error);
-      alert('댓글 수정에 실패했습니다.');
-    }
-  };
-
-  // 삭제 모달 표시
-  const showDeleteConfirm = (commentId) => {
-    setShowDeleteModal(commentId);
-    setDeleteForm({ password: '' });
-  };
-
-  // 삭제 모달 닫기
-  const closeDeleteModal = () => {
-    setShowDeleteModal(null);
-    setDeleteForm({ password: '' });
-  };
-
-  // 댓글 삭제
-  const handleDeleteSubmit = async (commentId, e) => {
-    e.preventDefault();
-    
-    if (!deleteForm.password.trim()) {
-      alert('비밀번호를 입력해주세요.');
-      return;
-    }
-
-    try {
-      // 실제 데이터베이스에서 삭제
-      const { data, error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId)
-        .eq('password', deleteForm.password);
-
-      if (!error) {
-        // 성공적으로 삭제되면 댓글 목록 새로고침
-        await loadCommentsFromStorage();
-        
-        // 게시글 댓글 수 감소
-        await supabase
-          .from('posts')
-          .update({ comment_count: Math.max(0, (post?.comment_count || 1) - 1) })
-          .eq('id', postId);
-        
-        setPost(prev => prev ? ({
-          ...prev,
-          comment_count: Math.max(0, prev.comment_count - 1)
-        }) : null);
-        
-        closeDeleteModal();
-        alert('댓글이 삭제되었습니다.');
-      } else {
-        // 데이터베이스 삭제 실패 시 로컬 저장소 사용
-        const deleteLocalComment = (comments) => {
-          return comments.reduce((acc, comment) => {
-            if (comment.id === commentId) {
-              return acc; // 해당 댓글 제거
-            }
-            if (comment.replies) {
-              return [...acc, {
-                ...comment,
-                replies: comment.replies.filter(reply => reply.id !== commentId)
-              }];
-            }
-            return [...acc, comment];
-          }, []);
-        };
-
-        const updatedComments = deleteLocalComment(comments);
-        setComments(updatedComments);
-        
-        try {
-          const storageKey = `comments_${postId}`;
-          localStorage.setItem(storageKey, JSON.stringify(updatedComments));
-        } catch (error) {
-          console.error('댓글 삭제 저장 실패:', error);
-        }
-        
-        // 댓글 수 감소
-        setPost(prev => prev ? ({
-          ...prev,
-          comment_count: Math.max(0, prev.comment_count - 1)
-        }) : null);
-        
-        closeDeleteModal();
-        alert('댓글이 삭제되었습니다.');
-      }
-    } catch (error) {
-      console.error('댓글 삭제 실패:', error);
-      alert('댓글 삭제에 실패했습니다.');
-    }
-  };
-
-  // 추천 버튼 클릭 여부 확인
-  const hasUserLiked = () => {
-    try {
-      const clickedKey = `post_liked_${postId}`;
-      return localStorage.getItem(clickedKey) === 'true';
-    } catch (error) {
-      return false;
-    }
-  };
-
-  // 추천 수 가져오기
-  const getLikeCount = () => {
-    try {
-      const likesKey = `post_likes_${postId}`;
-      return parseInt(localStorage.getItem(likesKey) || '0');
-    } catch (error) {
-      return 0;
-    }
-  };
-
-  // 추천(좋아요) 버튼 클릭 핸들러
-  const handleLikeClick = async () => {
-    // 이미 클릭했는지 확인
-    if (hasUserLiked()) {
-      alert('이미 추천을 누르셨습니다.');
-      return;
-    }
-
-    setIsLiking(true);
-    
-    try {
-      // localStorage에서 현재 클릭 수 가져오기
-      const storageKey = `post_likes_${postId}`;
-      const clickedKey = `post_liked_${postId}`;
-      const currentClicks = parseInt(localStorage.getItem(storageKey) || '0');
-      const newClicks = currentClicks + 1;
-      
-      // localStorage에 저장
-      localStorage.setItem(storageKey, newClicks.toString());
-      localStorage.setItem(clickedKey, 'true'); // 클릭 여부 저장
-      
-      // 즉시 UI 업데이트
-      setPost(prev => prev ? ({
-        ...prev,
-        likes: newClicks
-      }) : null);
-      
-      console.log(`👍 추천 +1 (총 클릭: ${newClicks}번)`);
-      
-    } catch (error) {
-      console.error('추천 처리 실패:', error);
-    } finally {
-      setIsLiking(false);
-    }
-  };
-
-  // 힘내 버튼 클릭 여부 확인
-  const hasUserCheered = () => {
-    try {
-      const clickedKey = `post_cheered_${postId}`;
-      return localStorage.getItem(clickedKey) === 'true';
-    } catch (error) {
-      return false;
-    }
-  };
-
-  // 힘내 수 가져오기
-  const getCheerCount = () => {
-    try {
-      const cheersKey = `post_cheers_${postId}`;
-      return parseInt(localStorage.getItem(cheersKey) || '0');
-    } catch (error) {
-      return 0;
-    }
-  };
-
-  // 힘내요 버튼 클릭 핸들러
-  const handleCheerClick = async () => {
-    // 이미 클릭했는지 확인
-    if (hasUserCheered()) {
-      alert('이미 힘내요를 누르셨습니다.');
-      return;
-    }
-
-    setIsCheering(true);
-    
-    try {
-      // localStorage에서 현재 클릭 수 가져오기
-      const storageKey = `post_cheers_${postId}`;
-      const clickedKey = `post_cheered_${postId}`;
-      const currentClicks = parseInt(localStorage.getItem(storageKey) || '0');
-      const newClicks = currentClicks + 1;
-      
-      // localStorage에 저장
-      localStorage.setItem(storageKey, newClicks.toString());
-      localStorage.setItem(clickedKey, 'true'); // 클릭 여부 저장
-      
-      // 즉시 UI 업데이트
-      setPost(prev => prev ? ({
-        ...prev,
-        cheers: newClicks
-      }) : null);
-      
-      console.log(`💪 힘내요 +1 (총 클릭: ${newClicks}번)`);
-      
-    } catch (error) {
-      console.error('힘내요 처리 실패:', error);
-    } finally {
-      setIsCheering(false);
-    }
-  };
-
-  // 작성자 권한 확인
-  const canEditPost = () => {
-    // 개발용: Ctrl+Shift+E로 작성자 권한 토글
-    try {
-      const authorKey = `post_author_${postId}`;
-      const savedAuthor = localStorage.getItem(authorKey);
-      
-      // 임시로 키보드 단축키로 작성자 권한 설정 가능
-      if (savedAuthor === 'temp_author') {
-        return true;
-      }
-      
-      // 실제 작성자 확인 (현재는 localStorage 기반)
-      const currentUser = localStorage.getItem('current_user');
-      
-      if (!savedAuthor && post) {
-        // 게시글 작성 시 저장된 정보가 있는지 확인
-        const writerKey = `post_writer_${post.nickname}`;
-        return localStorage.getItem(writerKey) === 'true';
-      }
-      
-      return savedAuthor === currentUser;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  // 작성자 권한 설정 (개발용)
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      // Ctrl + Shift + E 를 눌러 작성자 권한 토글
-      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
-        const authorKey = `post_author_${postId}`;
-        const currentAuthor = localStorage.getItem(authorKey);
-        
-        if (currentAuthor === 'temp_author') {
-          localStorage.removeItem(authorKey);
-          console.log('✏️ 작성자 권한 해제됨');
-          alert('작성자 권한이 해제되었습니다.');
-        } else {
-          localStorage.setItem(authorKey, 'temp_author');
-          console.log('✏️ 작성자 권한 설정됨');
-          alert('작성자 권한이 설정되었습니다.');
-        }
-        // 페이지 새로고침으로 버튼 상태 업데이트
-        window.location.reload();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [postId]);
-
-  // 관리자 권한 확인
-  const isAdmin = () => {
-    try {
-      const adminKey = 'user_role';
-      return localStorage.getItem(adminKey) === 'admin';
-    } catch (error) {
-      return false;
-    }
-  };
-
-  // 관리자 권한 설정 (개발용 - 키보드 단축키)
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      // Ctrl + Shift + A 를 눌러 관리자 권한 토글
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
-        const currentRole = localStorage.getItem('user_role');
-        if (currentRole === 'admin') {
-          localStorage.removeItem('user_role');
-          console.log('👤 관리자 권한 해제됨');
-          alert('관리자 권한이 해제되었습니다.');
-        } else {
-          localStorage.setItem('user_role', 'admin');
-          console.log('🛡️ 관리자 권한 설정됨');
-          alert('관리자 권한이 설정되었습니다.');
-        }
-        // 페이지 새로고침으로 버튼 상태 업데이트
-        window.location.reload();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
-
-  // 게시글 수정 핸들러
-  const handleEditPost = () => {
-    // 수정 페이지로 이동
-    window.location.href = `/board/edit/${postId}`;
-  };
-
-  // 게시글 삭제 핸들러 (작성자)
-  const handleDeletePost = () => {
-    setShowPostDeleteModal(true);
-  };
-
-  // 관리자 삭제 핸들러
-  const handleAdminDelete = () => {
-    if (confirm('관리자 권한으로 이 게시글을 삭제하시겠습니까?')) {
-      handlePostDelete(true);
-    }
-  };
-
-  // 게시글 삭제 실행
-  const handlePostDelete = async (isAdminDelete = false) => {
-    if (!isAdminDelete && !postDeleteForm.password.trim()) {
-      alert('비밀번호를 입력해주세요.');
-      return;
-    }
-
-    setIsDeleting(true);
-
-    try {
-      // 관련 댓글들 먼저 삭제
-      const { error: commentsError } = await supabase
-        .from('comments')
-        .delete()
-        .eq('post_id', postId);
-
-      if (commentsError) {
-        console.warn('댓글 삭제 실패:', commentsError);
-      }
-
-      // 게시글 삭제 (관리자는 비밀번호 확인 없이 삭제)
-      let deleteQuery = supabase
-        .from('posts')
-        .delete()
-        .eq('id', postId);
-
-      if (!isAdminDelete) {
-        deleteQuery = deleteQuery.eq('password', postDeleteForm.password);
-      }
-
-      const { error, data } = await deleteQuery.select();
-
-      if (!error && data && data.length > 0) {
-        // localStorage에서 관련 데이터 모두 제거
-        const authorKey = `post_author_${postId}`;
-        const likesKey = `post_likes_${postId}`;
-        const cheersKey = `post_cheers_${postId}`;
-        const likedKey = `post_liked_${postId}`;
-        const cheeredKey = `post_cheered_${postId}`;
-        const commentsKey = `comments_${postId}`;
-        
-        localStorage.removeItem(authorKey);
-        localStorage.removeItem(likesKey);
-        localStorage.removeItem(cheersKey);
-        localStorage.removeItem(likedKey);
-        localStorage.removeItem(cheeredKey);
-        localStorage.removeItem(commentsKey);
-        
-        alert('게시글이 삭제되었습니다.');
-        window.location.href = '/';
-      } else if (!error && (!data || data.length === 0)) {
-        alert('비밀번호가 일치하지 않습니다.');
-      } else {
-        // 데이터베이스 삭제 실패 시 localStorage에서 제거
-        const postKey = `post_${postId}`;
-        localStorage.removeItem(postKey);
-        
-        alert('게시글이 삭제되었습니다.');
-        window.location.href = '/';
-      }
-    } catch (error) {
-      console.error('게시글 삭제 실패:', error);
-      alert('게시글 삭제에 실패했습니다.');
-    } finally {
-      setIsDeleting(false);
-      setShowPostDeleteModal(false);
-    }
-  };
-
-  // 게시글 삭제 모달 닫기
-  const closePostDeleteModal = () => {
-    setShowPostDeleteModal(false);
-    setPostDeleteForm({ password: '' });
   };
 
   if (loading) {
@@ -1214,21 +367,11 @@ export default function PostDetailPage() {
       {/* 헤더 */}
       <header className="bg-gray-800 shadow-lg h-20">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-          <Link 
-            href="/" 
-            className="text-white flex items-center gap-3"
-            onClick={() => {
-              console.log('🏠 힘내톡톡 로고 클릭 - 메인 페이지로 이동');
-              // 메인 페이지로 이동 시 카테고리와 페이지 초기화
-              setTimeout(() => {
-                window.location.href = '/';
-              }, 100);
-            }}
-          >
+          <Link href="/" className="text-white flex items-center gap-3">
             <div className="text-2xl">🌟</div>
             <div>
-              <div className="text-lg font-bold">힘내톡톡</div>
-              <div className="text-xs text-gray-300">💡 신용회복, 개인회생, 재도전 정보 공유</div>
+              <div className="text-2xl font-bold">신복이</div>
+              <div className="text-xs text-gray-300">💡 개인법인회생파산 정보공유</div>
             </div>
           </Link>
           
@@ -1246,7 +389,7 @@ export default function PostDetailPage() {
         </div>
       </header>
 
-      {/* 상단 구글 애드센스 광고 (글내용 너비와 동일) */}
+      {/* 상단 구글 애드센스 광고 */}
       <div className="w-full bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="grid grid-cols-12 gap-6">
@@ -1263,614 +406,384 @@ export default function PostDetailPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-12 gap-6">
           
-                     {/* 좌측 광고 (광고가 있을 때만 표시) */}
-           <div className="col-span-2">
-             <div className="sticky top-6 space-y-4">
-               {ads.left
-                 .filter(ad => ad && ad.image_url)
-                 .map((ad, index) => (
-                   <AdSlot 
-                     key={ad.id || index}
-                     position="sidebar" 
-                     ad={ad}
-                     className="w-full"
-                     style={{ height: '180px' }}
-                   />
-                 ))}
-             </div>
-           </div>
+          {/* 좌측 광고 */}
+          <div className="col-span-2">
+            <div className="sticky top-6 space-y-4">
+              {ads.left
+                .filter(ad => ad && ad.image_url)
+                .map((ad, index) => (
+                  <AdSlot 
+                    key={ad.id || index}
+                    position="sidebar" 
+                    ad={ad}
+                    className="w-full"
+                    style={{ height: '180px' }}
+                  />
+                ))}
+            </div>
+          </div>
 
           {/* 중앙 컨텐츠 */}
           <div className="col-span-7">
             {/* 게시글 내용 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-              <div className="p-6">
-                {/* 게시글 헤더 */}
-                <div className="mb-4 pb-4 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+            <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-100 mb-8 overflow-hidden">
+              {/* 게시글 헤더 */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5 border-b border-blue-100">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className={`px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 shadow-sm ${
+                      post.category?.includes('개인회생') ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
+                      post.category?.includes('개인파산') ? 'bg-red-100 text-red-700 border border-red-200' :
+                      post.category?.includes('법인회생') ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                      post.category?.includes('법인파산') ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                      post.category?.includes('질문') ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                      'bg-gray-100 text-gray-700 border border-gray-200'
+                    }`}>
+                      {post.category?.includes('개인회생') && (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {post.category?.includes('개인파산') && (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {post.category?.includes('법인') && (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 5a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {post.category?.includes('질문') && (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
+                        </svg>
+                      )}
                       {post.category}
                     </span>
-                    <div className="flex items-center text-sm text-gray-500 space-x-4">
-                      <span>조회 {post.view_count}</span>
-                      <span>댓글 {comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0)}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h1 className="text-2xl font-bold text-gray-900">{post.title}</h1>
                     
-                    {/* 수정/삭제 버튼 영역 */}
-                    <div className="flex items-center space-x-2">
-                      {/* 작성자 본인 버튼 */}
-                      {canEditPost() && (
-                        <>
-                          <button
-                            onClick={handleEditPost}
-                            className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-                          >
-                            ✏️ 수정
-                          </button>
-                          <button
-                            onClick={handleDeletePost}
-                            className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-                          >
-                            🗑️ 삭제
-                          </button>
-                        </>
-                      )}
-                      
-                      {/* 관리자 삭제 버튼 */}
-                      {isAdmin() && !canEditPost() && (
-                        <button
-                          onClick={handleAdminDelete}
-                          className="px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          🛡️ 관리자 삭제
-                        </button>
-                      )}
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                        {post.view_count}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
+                        </svg>
+                        {comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0)}
+                      </span>
                     </div>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <span className="font-medium">{post.nickname}</span>
-                    <span className="mx-2">•</span>
-                    <span>{post.created_at}</span>
                   </div>
                 </div>
+                
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight mb-3">{post.title}</h1>
+                
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-medium text-gray-800">{post.nickname}</span>
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                    {post.created_at}
+                  </span>
+                </div>
+              </div>
 
-                {/* 게시글 본문 */}
+              {/* 게시글 본문 */}
+              <div className="p-6">
                 <div className="prose max-w-none">
-                  <div className="text-gray-800 leading-relaxed whitespace-pre-line">
+                  <div className="text-gray-800 leading-relaxed whitespace-pre-line text-base">
                     {post.content}
                   </div>
                 </div>
+              </div>
 
-                {/* 게시글 하단 */}
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  {/* 힘내세요 버튼 - 중앙 정렬 */}
-                  <div className="flex justify-center mb-4">
-                    <button 
-                      onClick={handleCheerClick}
-                      disabled={isCheering || hasUserCheered()}
-                      className={`relative overflow-hidden group flex items-center space-x-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 transform ${
-                        hasUserCheered() 
-                          ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow-md cursor-not-allowed' 
-                          : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:scale-105 hover:shadow-lg active:scale-95'
-                      } ${isCheering ? 'animate-pulse' : ''}`}
-                    >
-                      {/* 배경 애니메이션 효과 */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      
-                      {/* 아이콘과 텍스트 */}
-                      <span className="relative z-10 text-lg">
-                        {hasUserCheered() ? '🌟' : '💪'}
-                      </span>
-                      <span className="relative z-10 text-sm">
-                        {hasUserCheered() ? `응원완료 ${getCheerCount()}` : `힘내세요 ${getCheerCount()}`}
-                      </span>
-                      
-                      {/* 버튼 활성화 시 반짝이 효과 */}
-                      {hasUserCheered() && (
-                        <div className="absolute inset-0 animate-ping bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full opacity-15"></div>
-                      )}
-                    </button>
-                  </div>
-                  
-                  {/* 공유 버튼 - 우측 하단 */}
-                  <div className="flex justify-end">
-                    <button className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
-                      <span>📤 공유</span>
-                    </button>
-                  </div>
+              {/* 게시글 하단 - 힘내세요 버튼 */}
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <div className="flex justify-center mb-4">
+                  <button 
+                    className={`relative overflow-hidden group flex items-center space-x-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 transform bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:scale-105 hover:shadow-lg active:scale-95`}
+                  >
+                    <span className="relative z-10 text-lg">💪</span>
+                    <span className="relative z-10 text-sm">힘내세요 {post.cheers || 0}</span>
+                  </button>
+                </div>
+                
+                <div className="flex justify-end">
+                  <button className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
+                    <span>📤 공유</span>
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* 댓글 섹션 */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  댓글 {comments.length + comments.reduce((total, comment) => total + (comment.replies?.length || 0), 0)}개
-                  <span className="text-sm text-gray-500 ml-2">
-                    (원댓글 {comments.length}개 + 답글 {comments.reduce((total, comment) => total + (comment.replies?.length || 0), 0)}개)
-                  </span>
-                </h3>
-                
-                {/* 디버깅용 - 필요시에만 활성화 */}
-                {false && process.env.NODE_ENV === 'development' && (
-                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                    <strong>디버깅 정보:</strong>
-                    <br />- 댓글 배열 길이: {comments.length}
-                    <br />- PostID: {postId}
-                    <br />- 댓글 데이터: {JSON.stringify(comments.map(c => ({ id: c.id, nickname: c.nickname, repliesCount: c.replies?.length || 0 })))}
+            <div className="mt-8">
+              <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                {/* 댓글 헤더 */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-white">댓글</h2>
+                      <p className="text-blue-100 text-sm">
+                        총 {comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0)}개의 댓글이 있습니다
+                      </p>
+                    </div>
                   </div>
-                )}
+                </div>
 
                 {/* 댓글 작성 폼 */}
-                <form onSubmit={handleCommentSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex space-x-3 mb-3">
-                    <input
-                      type="text"
-                      name="nickname"
-                      placeholder="닉네임"
-                      value={commentForm.nickname}
-                      onChange={handleCommentChange}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-32"
+                <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-100">
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    // 댓글 작성 로직
+                    console.log('댓글 작성:', commentForm);
+                  }} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <input
+                        type="text"
+                        placeholder="닉네임"
+                        value={commentForm.nickname}
+                        onChange={(e) => setCommentForm(prev => ({ ...prev, nickname: e.target.value }))}
+                        className="px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        required
+                      />
+                      <input
+                        type="password"
+                        placeholder="비밀번호"
+                        value={commentForm.password}
+                        onChange={(e) => setCommentForm(prev => ({ ...prev, password: e.target.value }))}
+                        className="px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        required
+                      />
+                    </div>
+                    <textarea
+                      placeholder="댓글을 작성해주세요..."
+                      value={commentForm.content}
+                      onChange={(e) => setCommentForm(prev => ({ ...prev, content: e.target.value }))}
+                      className="w-full px-4 py-3 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all h-24 resize-none"
                       required
                     />
-                    <input
-                      type="password"
-                      name="password"
-                      placeholder="비밀번호"
-                      value={commentForm.password}
-                      onChange={handleCommentChange}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-32"
-                      required
-                    />
-                  </div>
-                  <textarea
-                    name="content"
-                    placeholder="댓글을 입력해주세요..."
-                    value={commentForm.content}
-                    onChange={handleCommentChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none mb-3"
-                    required
-                  />
-                  <div className="flex justify-end">
-                    <button 
-                      type="submit" 
-                      disabled={isSubmittingComment}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isSubmittingComment ? '등록 중...' : '댓글 작성'}
-                    </button>
-                  </div>
-                </form>
-
-                {/* 댓글 삭제 확인 모달 */}
-                {showDeleteModal && (
-                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-96">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">댓글 삭제</h3>
-                      <p className="text-gray-600 mb-4">댓글을 삭제하시겠습니까? 삭제된 댓글은 복구할 수 없습니다.</p>
-                      <form onSubmit={(e) => handleDeleteSubmit(showDeleteModal, e)}>
-                        <input
-                          type="password"
-                          placeholder="비밀번호를 입력해주세요"
-                          value={deleteForm.password}
-                          onChange={(e) => setDeleteForm(prev => ({ ...prev, password: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4"
-                          required
-                          autoFocus
-                        />
-                        <div className="flex justify-end space-x-3">
-                          <button
-                            type="button"
-                            onClick={closeDeleteModal}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                          >
-                            취소
-                          </button>
-                          <button
-                            type="submit"
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      </form>
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={isSubmittingComment}
+                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                      >
+                        {isSubmittingComment ? (
+                          <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                              <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" className="opacity-75" />
+                            </svg>
+                            작성 중...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                            </svg>
+                            댓글 작성
+                          </>
+                        )}
+                      </button>
                     </div>
-                  </div>
-                )}
+                  </form>
+                </div>
 
-                {/* 게시글 삭제 확인 모달 */}
-                {showPostDeleteModal && (
-                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-96">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">게시글 삭제</h3>
-                      <p className="text-gray-600 mb-4">게시글을 삭제하시겠습니까? 삭제된 게시글은 복구할 수 없습니다.</p>
-                      <form onSubmit={(e) => { e.preventDefault(); handlePostDelete(); }}>
-                        <input
-                          type="password"
-                          placeholder="게시글 작성 시 입력한 비밀번호"
-                          value={postDeleteForm.password}
-                          onChange={(e) => setPostDeleteForm(prev => ({ ...prev, password: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4"
-                          required
-                          autoFocus
-                        />
-                        <div className="flex justify-end space-x-3">
-                          <button
-                            type="button"
-                            onClick={closePostDeleteModal}
-                            className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                            disabled={isDeleting}
-                          >
-                            취소
-                          </button>
-                          <button
-                            type="submit"
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-                            disabled={isDeleting}
-                          >
-                            {isDeleting ? '삭제 중...' : '삭제'}
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                )}
-
-                {/* 댓글 목록 */}
-                <div className="space-y-4">
-                  {comments.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>아직 댓글이 없습니다.</p>
-                      <p className="text-sm mt-1">첫 번째 댓글을 작성해보세요!</p>
-                    </div>
-                  ) : (
-                    comments.map((comment) => (
-                    <div key={comment.id} className="space-y-4">
+                {/* 댓글 리스트 */}
+                <div className="divide-y divide-gray-100">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="p-6">
                       {/* 원댓글 */}
-                      <div className="p-4 border border-gray-100 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-3">
-                            <span className="font-medium text-gray-700">{comment.nickname}</span>
-                            <span className="text-xs text-gray-500">{comment.created_at}</span>
+                      <div className="flex gap-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                            </svg>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <button 
-                              onClick={() => toggleReplyForm(comment.id)}
-                              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                            >
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold text-gray-900">{comment.nickname}</span>
+                            <span className="text-sm text-gray-500">{comment.created_at}</span>
+                          </div>
+                          <div className="text-gray-800 leading-relaxed mb-3 whitespace-pre-line">
+                            {comment.content}
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            <button className="text-blue-600 hover:text-blue-700 font-medium">
                               답글
                             </button>
-                            <button 
-                              onClick={() => startEdit(comment)}
-                              className="text-xs text-gray-500 hover:text-gray-700"
-                            >
+                            <button className="text-gray-500 hover:text-gray-700">
                               수정
                             </button>
-                            <button 
-                              onClick={() => showDeleteConfirm(comment.id)}
-                              className="text-xs text-gray-500 hover:text-gray-700"
-                            >
+                            <button className="text-red-500 hover:text-red-700">
                               삭제
                             </button>
                           </div>
-                        </div>
-                        
-                        {/* 수정 모드 */}
-                        {editingComment === comment.id ? (
-                          <form onSubmit={(e) => handleEditSubmit(comment.id, e)} className="space-y-3">
-                            <input
-                              type="password"
-                              placeholder="비밀번호"
-                              value={editForm.password}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
-                              className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-32"
-                              required
-                            />
-                            <textarea
-                              value={editForm.content}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, content: e.target.value }))}
-                              rows={3}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none"
-                              required
-                            />
-                            <div className="flex justify-end space-x-2">
-                              <button
-                                type="button"
-                                onClick={cancelEdit}
-                                className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-                              >
-                                취소
-                              </button>
-                              <button
-                                type="submit"
-                                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                              >
-                                수정
-                              </button>
-                            </div>
-                          </form>
-                        ) : (
-                          <p className="text-gray-800 leading-relaxed">{comment.content}</p>
-                        )}
 
-                        {/* 답글 폼 */}
-                        {showReplyForm[comment.id] && (
-                          <form 
-                            onSubmit={(e) => handleReplySubmit(comment.id, e)} 
-                            className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200"
-                          >
-                            <div className="flex space-x-2 mb-2">
-                              <input
-                                type="text"
-                                name="nickname"
-                                placeholder="닉네임"
-                                value={replyForms[comment.id]?.nickname || ''}
-                                onChange={(e) => handleReplyChange(comment.id, e)}
-                                className="px-2 py-1 border border-gray-300 rounded text-xs w-24"
-                                required
-                              />
-                              <input
-                                type="password"
-                                name="password"
-                                placeholder="비밀번호"
-                                value={replyForms[comment.id]?.password || ''}
-                                onChange={(e) => handleReplyChange(comment.id, e)}
-                                className="px-2 py-1 border border-gray-300 rounded text-xs w-24"
-                                required
-                              />
-                            </div>
-                            <textarea
-                              name="content"
-                              placeholder="답글을 입력해주세요..."
-                              value={replyForms[comment.id]?.content || ''}
-                              onChange={(e) => handleReplyChange(comment.id, e)}
-                              rows={2}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-xs resize-none mb-2"
-                              required
-                            />
-                            <div className="flex justify-end space-x-2">
-                              <button
-                                type="button"
-                                onClick={() => toggleReplyForm(comment.id)}
-                                className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800"
-                              >
-                                취소
-                              </button>
-                              <button
-                                type="submit"
-                                disabled={isSubmittingReply[comment.id]}
-                                className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
-                              >
-                                {isSubmittingReply[comment.id] ? '등록 중...' : '답글 등록'}
-                              </button>
-                            </div>
-                          </form>
-                        )}
-                      </div>
-
-                      {/* 답글 목록 */}
-                      {comment.replies && comment.replies.length > 0 && (
-                        <div className="ml-8 space-y-3">
-                          {comment.replies.map((reply) => {
-                            // 답글이 달린 대상 찾기
-                            const replyTarget = reply.parent_id === comment.id 
-                              ? comment 
-                              : comment.replies.find(r => r.id === reply.parent_id);
-                            
-                            return (
-                              <div key={reply.id} className="space-y-3">
-                                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center space-x-3">
-                                      <span className="text-sm text-blue-600">↳</span>
-                                      <span className="font-medium text-gray-700 text-sm">{reply.nickname}</span>
-                                      {replyTarget && reply.parent_id !== comment.id && (
-                                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                                          @{replyTarget.nickname}
-                                        </span>
-                                      )}
+                          {/* 답글 리스트 */}
+                          {comment.replies && comment.replies.length > 0 && (
+                            <div className="mt-4 pl-6 border-l-2 border-blue-100 space-y-4">
+                              {comment.replies.map((reply) => (
+                                <div key={reply.id} className="flex gap-3">
+                                  <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
+                                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                      </svg>
+                                    </div>
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="font-medium text-gray-900">{reply.nickname}</span>
                                       <span className="text-xs text-gray-500">{reply.created_at}</span>
                                     </div>
-                                  <div className="flex items-center space-x-2">
-                                    <button 
-                                      onClick={() => toggleReplyForm(reply.id)}
-                                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                                    >
-                                      답글
-                                    </button>
-                                    <button 
-                                      onClick={() => startEdit(reply)}
-                                      className="text-xs text-gray-500 hover:text-gray-700"
-                                    >
-                                      수정
-                                    </button>
-                                    <button 
-                                      onClick={() => showDeleteConfirm(reply.id)}
-                                      className="text-xs text-gray-500 hover:text-gray-700"
-                                    >
-                                      삭제
-                                    </button>
-                                  </div>
-                                </div>
-                                
-                                {/* 수정 모드 */}
-                                {editingComment === reply.id ? (
-                                  <form onSubmit={(e) => handleEditSubmit(reply.id, e)} className="space-y-2 mt-2">
-                                    <input
-                                      type="password"
-                                      placeholder="비밀번호"
-                                      value={editForm.password}
-                                      onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
-                                      className="px-2 py-1 border border-gray-300 rounded text-xs w-24"
-                                      required
-                                    />
-                                    <textarea
-                                      value={editForm.content}
-                                      onChange={(e) => setEditForm(prev => ({ ...prev, content: e.target.value }))}
-                                      rows={2}
-                                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs resize-none"
-                                      required
-                                    />
-                                    <div className="flex justify-end space-x-2">
-                                      <button
-                                        type="button"
-                                        onClick={cancelEdit}
-                                        className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800"
-                                      >
-                                        취소
+                                    <div className="text-gray-700 leading-relaxed mb-2 whitespace-pre-line text-sm">
+                                      {reply.content}
+                                    </div>
+                                    <div className="flex items-center gap-3 text-xs">
+                                      <button className="text-blue-600 hover:text-blue-700 font-medium">
+                                        답글
                                       </button>
-                                      <button
-                                        type="submit"
-                                        className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                                      >
+                                      <button className="text-gray-500 hover:text-gray-700">
                                         수정
                                       </button>
-                                    </div>
-                                  </form>
-                                ) : (
-                                  <p className="text-gray-800 leading-relaxed text-sm">{reply.content}</p>
-                                )}
-
-                                {/* 답글의 답글 폼 */}
-                                {showReplyForm[reply.id] && (
-                                  <form 
-                                    onSubmit={(e) => handleReplySubmit(reply.id, e)} 
-                                    className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200"
-                                  >
-                                    <div className="flex space-x-2 mb-2">
-                                      <input
-                                        type="text"
-                                        name="nickname"
-                                        placeholder="닉네임"
-                                        value={replyForms[reply.id]?.nickname || ''}
-                                        onChange={(e) => handleReplyChange(reply.id, e)}
-                                        className="px-2 py-1 border border-gray-300 rounded text-xs w-24"
-                                        required
-                                      />
-                                      <input
-                                        type="password"
-                                        name="password"
-                                        placeholder="비밀번호"
-                                        value={replyForms[reply.id]?.password || ''}
-                                        onChange={(e) => handleReplyChange(reply.id, e)}
-                                        className="px-2 py-1 border border-gray-300 rounded text-xs w-24"
-                                        required
-                                      />
-                                    </div>
-                                    <textarea
-                                      name="content"
-                                      placeholder="답글을 입력해주세요..."
-                                      value={replyForms[reply.id]?.content || ''}
-                                      onChange={(e) => handleReplyChange(reply.id, e)}
-                                      rows={2}
-                                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs resize-none mb-2"
-                                      required
-                                    />
-                                    <div className="flex justify-end space-x-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleReplyForm(reply.id)}
-                                        className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800"
-                                      >
-                                        취소
-                                      </button>
-                                      <button
-                                        type="submit"
-                                        disabled={isSubmittingReply[reply.id]}
-                                        className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
-                                      >
-                                        {isSubmittingReply[reply.id] ? '등록 중...' : '답글 등록'}
+                                      <button className="text-red-500 hover:text-red-700">
+                                        삭제
                                       </button>
                                     </div>
-                                  </form>
-                                )}
-                              </div>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          );
-                          })}
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
-                  ))
+                  ))}
+
+                  {/* 댓글이 없을 때 */}
+                  {comments.length === 0 && (
+                    <div className="p-12 text-center">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500 text-lg mb-2">아직 댓글이 없습니다</p>
+                      <p className="text-gray-400 text-sm">첫 번째 댓글을 작성해보세요!</p>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* 하단 구글 애드센스 광고 (댓글 바로 아래) */}
-            <div className="mt-4">
-              <AdsenseBanner position="horizontal" />
-            </div>
-
             {/* 관련 게시글 리스트 */}
-            <div className="mt-6">
-              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                {/* 헤더 */}
-                <div className="bg-gray-800 px-4 py-3">
-                  <h2 className="text-lg font-bold text-white">💡 다른 글도 확인해보세요</h2>
+            <div className="mt-8">
+              <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-gray-800 to-gray-700 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <h2 className="text-lg font-bold text-white">다른 글도 확인해보세요</h2>
+                  </div>
                 </div>
                 
-                {/* 테이블 헤더 */}
-                <div className="relative bg-gray-50 px-4 py-2">
-                  <div className="flex items-center">
-                    <div className="w-16 text-center text-sm font-medium text-gray-600">번호</div>
-                    <div className="w-20 text-center text-sm font-medium text-gray-600">분류</div>
-                    <div className="flex-1 text-left text-sm font-medium text-gray-600">제목</div>
-                    <div className="w-24 text-center text-sm font-medium text-gray-600">닉네임</div>
-                    <div className="w-20 text-center text-sm font-medium text-gray-600">날짜</div>
-                    <div className="w-16 text-center text-sm font-medium text-gray-600">조회</div>
-                    <div className="w-16 text-center text-sm font-medium text-gray-600">댓글</div>
-                  </div>
-                </div>
+                <div className="p-6 space-y-3">
+                  {relatedPosts.map((post, idx) => {
+                    const getCategoryColor = (category) => {
+                      if (category?.includes('개인회생')) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                      if (category?.includes('개인파산')) return 'bg-red-100 text-red-700 border-red-200';
+                      if (category?.includes('법인회생')) return 'bg-blue-100 text-blue-700 border-blue-200';
+                      if (category?.includes('법인파산')) return 'bg-orange-100 text-orange-700 border-orange-200';
+                      if (category?.includes('질문')) return 'bg-purple-100 text-purple-700 border-purple-200';
+                      return 'bg-gray-100 text-gray-700 border-gray-200';
+                    };
 
-                {/* 게시글 목록 */}
-                {relatedPosts.map((post, idx) => (
-                  <div key={post.id} className={`relative px-4 py-3 hover:bg-gray-100 transition-colors ${
-                    idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                  }`}>
-                    <div className="flex items-center">
-                      <div className="w-16 text-center text-sm text-gray-500">{idx + 1}</div>
-                      <div className="w-20 text-center">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs">
-                          {post.category}
-                        </span>
-                      </div>
-                      <div className="flex-1 text-left">
-                        <Link 
-                          href={`/post/${post.id}`}
-                          className="text-sm text-gray-900 hover:text-blue-600 font-medium"
-                        >
-                          {post.title}
-                          {post.comment_count > 0 && (
-                            <span className="text-xs text-blue-600 ml-1">
-                              [{post.comment_count}]
-                            </span>
-                          )}
+                    return (
+                      <div key={post.id} className="group">
+                        <Link href={`/post/${post.id}`} className="block">
+                          <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-200">
+                            <div className="flex items-center gap-3 mb-3">
+                              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium min-w-[1.5rem] text-center">
+                                {idx + 1}
+                              </span>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getCategoryColor(post.category)}`}>
+                                {post.category}
+                              </span>
+                              <div className="ml-auto text-xs text-gray-500 flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                </svg>
+                                {post.created_at ? post.created_at.slice(5, 10) : '01-01'}
+                              </div>
+                            </div>
+                            
+                            <h3 className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors leading-6 mb-3">
+                              {post.title}
+                              {post.comment_count > 0 && (
+                                <span className="text-sm text-blue-600 ml-2 font-medium">
+                                  💬 {post.comment_count}
+                                </span>
+                              )}
+                            </h3>
+                            
+                            <div className="flex items-center justify-between text-sm text-gray-600">
+                              <div className="flex items-center gap-4">
+                                <span className="flex items-center gap-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                  </svg>
+                                  {post.nickname}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                    <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                  </svg>
+                                  {post.view_count}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </Link>
                       </div>
-                      <div className="w-24 text-center text-sm text-gray-600">{post.nickname}</div>
-                      <div className="w-20 text-center text-sm text-gray-500">{post.created_at.slice(5, 10)}</div>
-                      <div className="w-16 text-center text-sm text-gray-500">{post.view_count}</div>
-                      <div className="w-16 text-center text-sm text-orange-600 font-medium">
-                        {post.comment_count}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
 
-                {/* 더보기 버튼 */}
-                <div className="bg-gray-50 px-4 py-3 text-center border-t">
-                  <Link 
-                    href="/"
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                  >
-                    전체 게시글 보기 →
-                  </Link>
+                <div className="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-t border-gray-200">
+                  <div className="text-center">
+                    <Link 
+                      href="/"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 text-sm font-semibold shadow-sm hover:shadow-md"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clipRule="evenodd" />
+                      </svg>
+                      전체 게시글 보기
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1880,56 +793,69 @@ export default function PostDetailPage() {
           <div className="col-span-3">
             <div className="sticky top-6 space-y-6">
               {/* 실시간 인기글 */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="p-4 border-b border-gray-100">
-                  <h3 className="font-semibold text-gray-900 flex items-center">
-                    <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-                    실시간 인기글
-                  </h3>
+              <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl shadow-sm border border-orange-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
+                    </svg>
+                    <h3 className="font-bold text-white text-sm">실시간 인기</h3>
+                  </div>
                 </div>
                 <div className="p-4">
                   <div className="space-y-3">
                     {popularPosts.map((post, index) => (
-                      <div key={post.id} className="group cursor-pointer">
-                        <div className="flex items-start space-x-3">
-                          <span className={`flex-shrink-0 w-5 h-5 rounded text-xs font-bold flex items-center justify-center ${
-                            index < 3 ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600'
+                      <Link key={post.id} href={`/post/${post.id}`} className="group block">
+                        <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/70 transition-all duration-200 hover:shadow-sm">
+                          <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 group-hover:scale-110 ${
+                            index === 0 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md' :
+                            index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-white shadow-md' :
+                            index === 2 ? 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white shadow-md' :
+                            'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600'
                           }`}>
                             {index + 1}
-                          </span>
+                          </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                            <p className="text-sm font-medium text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2 leading-5">
                               {post.title}
                             </p>
-                            <div className="flex items-center text-xs text-gray-500 mt-1 space-x-2">
-                              <span>{post.nickname}</span>
-                              <span>•</span>
-                              <span>조회 {post.view_count}</span>
-                              <span>•</span>
-                              <span>댓글 {post.comment_count}</span>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                                </svg>
+                                {post.view_count}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                                </svg>
+                                {post.nickname}
+                              </span>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>
               </div>
 
-                             {/* 우측 내부 광고 1개 (광고주 광고, 메인과 동일 크기) */}
-               <div className="w-full flex items-center justify-center" style={{ aspectRatio: '1/1', position: 'relative', minHeight: '200px' }}>
-                 <AdSlot 
-                   position="sidebar" 
-                   ad={ads.right[0] || ads.sidebar}
-                   className="w-full h-full"
-                 />
-               </div>
+              {/* 우측 내부 광고 */}
+              <div className="w-full flex items-center justify-center" style={{ aspectRatio: '1/1', position: 'relative', minHeight: '200px' }}>
+                <AdSlot 
+                  position="sidebar" 
+                  ad={ads.right[0] || ads.sidebar}
+                  className="w-full h-full"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 개발용 단축키 안내 (개발 환경에서만 표시) */}
+      {/* 개발용 단축키 안내 */}
       {process.env.NODE_ENV === 'development' && (
         <div className="fixed bottom-4 right-4 bg-gray-800 text-white text-xs p-3 rounded-lg shadow-lg max-w-xs z-50">
           <div className="font-semibold mb-1">개발용 단축키</div>

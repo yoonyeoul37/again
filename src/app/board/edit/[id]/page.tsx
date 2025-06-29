@@ -142,10 +142,10 @@ export default function EditPostPage() {
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
           <a href="/" className="text-white flex items-center gap-3">
             <div className="text-2xl">🌟</div>
-            <div>
-              <div className="text-lg font-bold">힘내톡톡</div>
-              <div className="text-xs text-gray-300">💡 신용회복, 개인회생, 재도전 정보 공유</div>
-            </div>
+                          <div>
+                <div className="text-2xl font-bold">신복이</div>
+                <div className="text-xs text-gray-300">💡 개인법인회생파산 정보공유</div>
+              </div>
           </a>
           
           <nav className="flex items-center space-x-6">

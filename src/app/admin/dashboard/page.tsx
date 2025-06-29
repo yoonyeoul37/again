@@ -358,31 +358,49 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50" style={{fontFamily: `'Malgun Gothic', '맑은 고딕', Dotum, '돋움', Arial, Helvetica, sans-serif`}}>
-      {/* 헤더 */}
-      <div className="bg-white shadow-sm border-b">
+      {/* 메인 헤더 */}
+      <header className="bg-gradient-to-r from-[#333333] to-[#444444] shadow-md sticky top-0 z-50" style={{fontFamily: `'Malgun Gothic', '맑은 고딕', Dotum, '돋움', Arial, Helvetica, sans-serif`}}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            {/* 로고 */}
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-400 to-green-400 flex items-center justify-center shadow rounded-full">
+                {/* 말풍선(채팅) SVG 아이콘 */}
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.8L3 20l1.09-3.27C3.4 15.1 3 13.59 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              </div>
+              <span className="text-2xl font-bold text-white tracking-tight drop-shadow">
+                신복이! <span className="text-green-200 font-extrabold text-sm">개인법인회생파산 정보공유</span>
+              </span>
+            </Link>
+
+            {/* 관리자 메뉴 */}
+            <nav className="hidden md:flex items-center space-x-6 text-sm">
+              <span className="text-white bg-red-500 px-3 py-1 rounded-full font-bold">관리자</span>
+              <Link href="/admin/ads" className="text-white/80 hover:text-white font-semibold transition-colors">
+                광고 관리
+              </Link>
+              <Link href="/admin/ads/banner" className="text-white/80 hover:text-white font-semibold transition-colors">
+                개인광고
+              </Link>
+              <Link href="/admin/news" className="text-white/80 hover:text-white font-semibold transition-colors">
+                뉴스 관리
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </header>
+      
+      {/* 서브 헤더 */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-12">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-900">관리자 대시보드</h1>
+              <h1 className="text-lg font-bold text-gray-900">관리자 대시보드</h1>
               {mounted && (
-                <span className="text-sm text-gray-500">
+                <span className="text-xs text-gray-500">
                   {currentTime.toLocaleString('ko-KR')}
                 </span>
               )}
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/admin/ads" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                광고 관리
-              </Link>
-              <Link href="/admin/ads/banner" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                개인광고
-              </Link>
-              <Link href="/admin/news" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                뉴스 관리
-              </Link>
-              <Link href="/" className="text-gray-600 hover:text-gray-700 text-sm font-medium">
-                사이트로 이동
-              </Link>
             </div>
           </div>
         </div>

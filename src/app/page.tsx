@@ -370,10 +370,10 @@ export default function HomePage() {
         <header className="bg-gray-800 shadow-lg h-20">
           <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
             <Link href="/" className="text-white flex items-center gap-3" onClick={() => { setSelectedCategory('전체'); setCurrentPage(1); }}>
-              <div className="text-2xl">🌟</div>
+              <div className="text-2xl"></div>
               <div>
-                <div className="text-lg font-bold">힘내톡톡</div>
-                <div className="text-xs text-gray-300">💡 신용회복, 개인회생, 재도전 정보 공유</div>
+                <div className="text-2xl font-bold">신복이</div>
+                <div className="text-xs text-gray-300">개인법인회생파산 정보공유</div>
               </div>
             </Link>
             
@@ -408,10 +408,10 @@ export default function HomePage() {
       <header className="bg-gray-800 shadow-lg h-20">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
           <Link href="/" className="text-white flex items-center gap-3" onClick={() => { setSelectedCategory('전체'); setCurrentPage(1); }}>
-            <div className="text-2xl">🌟</div>
+            <div className="text-2xl"></div>
             <div>
-              <div className="text-lg font-bold">힘내톡톡</div>
-              <div className="text-xs text-gray-300">💡 신용회복, 개인회생, 재도전 정보 공유</div>
+              <div className="text-2xl font-bold">신복이</div>
+              <div className="text-xs text-gray-300">개인·법인회생파산 정보공유</div>
             </div>
           </Link>
           
@@ -434,177 +434,325 @@ export default function HomePage() {
         <div className="flex gap-6">
           {/* 왼쪽 메인 영역 */}
           <div className="flex-1">
-            {/* 카테고리 버튼들 */}
-            <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">게시판</h2>
-              <div className="flex flex-wrap gap-2">
-                {categories.map(category => (
-                  <button
-                    key={category}
-                    onClick={() => handleCategoryChange(category)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      selectedCategory === category
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
+            {/* 카테고리 네비게이션 */}
+            <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl shadow-lg border border-gray-100 p-6 mb-8 overflow-hidden relative">
+              {/* 배경 패턴 */}
+              <div className="absolute inset-0 opacity-5">
+                <div className="absolute inset-0" style={{
+                  backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%)',
+                  backgroundSize: '60px 60px'
+                }}></div>
+              </div>
+              
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                    카테고리
+                  </h2>
+                </div>
+                
+                <div className="flex flex-wrap gap-3">
+                  {categories.map((category, index) => {
+                    const isSelected = selectedCategory === category;
+                    const colorClasses = {
+                      '전체': isSelected 
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25' 
+                        : 'bg-white hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 text-gray-700 hover:text-indigo-600 border border-gray-200 hover:border-indigo-200',
+                      '개인회생': isSelected 
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25' 
+                        : 'bg-white hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 text-gray-700 hover:text-emerald-600 border border-gray-200 hover:border-emerald-200',
+                      '개인파산': isSelected 
+                        ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg shadow-red-500/25' 
+                        : 'bg-white hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 text-gray-700 hover:text-red-600 border border-gray-200 hover:border-red-200',
+                      '법인회생': isSelected 
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/25' 
+                        : 'bg-white hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-200',
+                      '법인파산': isSelected 
+                        ? 'bg-gradient-to-r from-orange-500 to-yellow-600 text-white shadow-lg shadow-orange-500/25' 
+                        : 'bg-white hover:bg-gradient-to-r hover:from-orange-50 hover:to-yellow-50 text-gray-700 hover:text-orange-600 border border-gray-200 hover:border-orange-200',
+                      '질문답변': isSelected 
+                        ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/25' 
+                        : 'bg-white hover:bg-gradient-to-r hover:from-violet-50 hover:to-purple-50 text-gray-700 hover:text-violet-600 border border-gray-200 hover:border-violet-200',
+                      '정보공유': isSelected 
+                        ? 'bg-gradient-to-r from-slate-600 to-gray-700 text-white shadow-lg shadow-slate-500/25' 
+                        : 'bg-white hover:bg-gradient-to-r hover:from-slate-50 hover:to-gray-50 text-gray-700 hover:text-slate-600 border border-gray-200 hover:border-slate-200'
+                    }[category] || (isSelected 
+                      ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-500/25' 
+                      : 'bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-600 border border-gray-200');
+                    
+                    return (
+                      <button
+                        key={category}
+                        onClick={() => handleCategoryChange(category)}
+                        className={`group relative px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 hover:-translate-y-0.5 ${colorClasses}`}
+                      >
+                        <span className="relative z-10 flex items-center gap-2">
+                          {category === '전체' && (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {category.includes('개인') && (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {category.includes('법인') && (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 5a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {category === '질문답변' && (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {category === '정보공유' && (
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {category}
+                        </span>
+                        
+                        {/* 선택된 상태일 때 반짝이는 효과 */}
+                        {isSelected && (
+                          <div className="absolute inset-0 rounded-xl bg-white/20 animate-pulse"></div>
+                        )}
+                        
+                        {/* 호버 시 글로우 효과 */}
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {/* 선택된 카테고리 표시 */}
+                <div className="mt-4 flex items-center gap-2 text-sm text-gray-500">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                  <span>현재 보기: <span className="font-semibold text-gray-800">{selectedCategory}</span></span>
+                </div>
               </div>
             </div>
 
-            {/* 글쓰기 버튼 */}
-            <div className="flex justify-between items-center mb-4">
+            {/* 액션 버튼들 */}
+            <div className="flex justify-between items-center mb-6">
               <button
                 onClick={() => {
                   console.log('🔄 수동 새로고침 버튼 클릭');
                   setLoading(true);
                   fetchPosts();
                 }}
-                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                className="group relative px-5 py-3 bg-gradient-to-r from-slate-100 to-gray-100 hover:from-slate-200 hover:to-gray-200 text-gray-700 rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-300 text-sm font-semibold shadow-sm hover:shadow-md transform hover:scale-105"
               >
-                🔄 새로고침
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                  </svg>
+                  새로고침
+                </span>
+                {/* 호버 시 글로우 효과 */}
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </button>
+              
               <Link
                 href="/board/write"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 text-sm font-semibold shadow-sm hover:shadow-md"
               >
-                글쓰기
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                새 글 작성
               </Link>
             </div>
 
             {/* 게시글 목록 */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              {/* 헤더 */}
-              <div className="relative bg-gray-50 px-4 py-2">
-                <div className="flex items-center">
-                  <div className="w-16 text-center text-sm font-medium text-gray-600">번호</div>
-                  <div className="w-20 text-center text-sm font-medium text-gray-600">분류</div>
-                  <div className="flex-1 text-left text-sm font-medium text-gray-600">제목</div>
-                  <div className="w-24 text-center text-sm font-medium text-gray-600">닉네임</div>
-                  <div className="w-20 text-center text-sm font-medium text-gray-600">날짜</div>
-                  <div className="w-16 text-center text-sm font-medium text-gray-600">조회</div>
-                  <div className="w-16 text-center text-sm font-medium text-gray-600">힘내</div>
-                </div>
-                <div style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: '0.5em',
-                  backgroundImage: 'repeating-radial-gradient(circle, #333 0.5px, #333 1.5px, transparent 1.5px, transparent 4px)',
-                  backgroundPosition: 'bottom',
-                  backgroundSize: '4px 1.5px',
-                  backgroundRepeat: 'repeat-x',
-                  pointerEvents: 'none'
-                }} />
-              </div>
-
+            <div className="space-y-2">
               {/* 공지글 */}
               {noticePosts.map((post, idx) => (
-                <div key={post.id} className={`relative px-4 py-2 hover:bg-gray-100 transition-colors ${
-                  idx % 2 === 0 ? 'bg-red-50' : 'bg-white'
-                }`}>
-                  <div className="flex items-center">
-                    <div className="w-16 text-center text-sm text-red-600 font-bold">공지</div>
-                    <div className="w-20 text-center">
-                      <span className="px-2 py-1 bg-red-100 text-red-600 rounded text-xs font-medium">
-                        {post.category}
-                      </span>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <Link 
-                        href={`/post/${post.id}`}
-                        className="text-sm text-gray-900 hover:text-blue-600 font-medium"
-                      >
+                <div key={post.id} className="group relative">
+                  <Link href={`/post/${post.id}`} className="block">
+                    <div className="bg-gradient-to-r from-red-50 via-pink-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                      {/* 공지 배지와 카테고리 */}
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-md">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                            공지
+                          </div>
+                          <span className="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-medium">
+                            {post.category}
+                          </span>
+                        </div>
+                        <div className="ml-auto text-xs text-gray-500 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                          </svg>
+                          {post.created_at.slice(5, 10)}
+                        </div>
+                      </div>
+                      
+                      {/* 제목 */}
+                      <h3 className="text-base font-bold text-gray-900 group-hover:text-red-600 transition-colors leading-5 mb-2">
                         {post.title}
                         {post.comment_count > 0 && (
-                          <span className="text-xs text-blue-600 ml-1">
-                            [{post.comment_count}]
+                          <span className="text-sm text-blue-600 ml-2 font-medium">
+                            💬 {post.comment_count}
                           </span>
                         )}
-                      </Link>
+                      </h3>
+                      
+                      {/* 메타 정보 */}
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                            </svg>
+                            {post.nickname}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                            </svg>
+                            {post.view_count}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-orange-600 font-medium">
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+                          </svg>
+                          {getCheerCount(post.id)}
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-24 text-center text-sm text-gray-600">{post.nickname}</div>
-                    <div className="w-20 text-center text-sm text-gray-500">{post.created_at.slice(5, 10)}</div>
-                    <div className="w-16 text-center text-sm text-gray-500">{post.view_count}</div>
-                    <div className="w-16 text-center text-sm text-orange-600 font-medium">
-                      {getCheerCount(post.id)}
-                    </div>
-                  </div>
-                  <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: '0.5em',
-                    backgroundImage: 'repeating-radial-gradient(circle, #333 0.5px, #333 1.5px, transparent 1.5px, transparent 4px)',
-                    backgroundPosition: 'bottom',
-                    backgroundSize: '4px 1.5px',
-                    backgroundRepeat: 'repeat-x',
-                    pointerEvents: 'none'
-                  }} />
+                  </Link>
                 </div>
               ))}
 
               {/* 일반글 */}
-              {currentPosts.map((post, idx) => (
-                <div key={post.id} className={`relative px-4 py-3 hover:bg-gray-100 transition-colors ${
-                  (noticePosts.length + idx) % 2 === 0 ? 'bg-gray-50' : 'bg-white'
-                }`}>
-                  <div className="flex items-center">
-                    <div className="w-16 text-center text-sm text-gray-500">{startIndex + idx + 1}</div>
-                    <div className="w-20 text-center">
-                      <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                        {post.category}
-                      </span>
-                    </div>
-                    <div className="flex-1 text-left">
-                      <Link 
-                        href={`/post/${post.id}`}
-                        className="text-sm text-gray-900 hover:text-blue-600"
-                      >
-                        {post.title}
-                        {post.comment_count > 0 && (
-                          <span className="text-xs text-blue-600 ml-1">
-                            [{post.comment_count}]
+              {currentPosts.map((post, idx) => {
+                const getCategoryIcon = (category) => {
+                  if (category.includes('개인회생')) return (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                  );
+                  if (category.includes('개인파산')) return (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  );
+                  if (category.includes('법인')) return (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 5a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    </svg>
+                  );
+                  if (category.includes('질문')) return (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
+                    </svg>
+                  );
+                  return (
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  );
+                };
+
+                const getCategoryColor = (category) => {
+                  if (category.includes('개인회생')) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                  if (category.includes('개인파산')) return 'bg-red-100 text-red-700 border-red-200';
+                  if (category.includes('법인회생')) return 'bg-blue-100 text-blue-700 border-blue-200';
+                  if (category.includes('법인파산')) return 'bg-orange-100 text-orange-700 border-orange-200';
+                  if (category.includes('질문')) return 'bg-purple-100 text-purple-700 border-purple-200';
+                  return 'bg-gray-100 text-gray-700 border-gray-200';
+                };
+
+                return (
+                  <div key={post.id} className="group relative">
+                    <Link href={`/post/${post.id}`} className="block">
+                      <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-200">
+                        {/* 번호와 카테고리 */}
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium min-w-[1.8rem] text-center">
+                            {startIndex + idx + 1}
                           </span>
-                        )}
-                      </Link>
-                    </div>
-                    <div className="w-24 text-center text-sm text-gray-600">{post.nickname}</div>
-                    <div className="w-20 text-center text-sm text-gray-500">{post.created_at.slice(5, 10)}</div>
-                    <div className="w-16 text-center text-sm text-gray-500">{post.view_count}</div>
-                    <div className="w-16 text-center text-sm text-orange-600 font-medium">
-                      {getCheerCount(post.id)}
-                    </div>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getCategoryColor(post.category)}`}>
+                            {getCategoryIcon(post.category)}
+                            {post.category}
+                          </span>
+                          <div className="ml-auto text-xs text-gray-500 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                            </svg>
+                            {post.created_at.slice(5, 10)}
+                          </div>
+                        </div>
+                        
+                        {/* 제목 */}
+                        <h3 className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors leading-5 mb-2">
+                          {post.title}
+                          {post.comment_count > 0 && (
+                            <span className="text-sm text-blue-600 ml-2 font-medium">
+                              💬 {post.comment_count}
+                            </span>
+                          )}
+                        </h3>
+                        
+                        {/* 메타 정보 */}
+                        <div className="flex items-center justify-between text-sm text-gray-600">
+                          <div className="flex items-center gap-4">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                              </svg>
+                              {post.nickname}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                              </svg>
+                              {post.view_count}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-orange-600 font-medium">
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+                            </svg>
+                            {getCheerCount(post.id)}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
                   </div>
-                  <div style={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: '0.5em',
-                    backgroundImage: 'repeating-radial-gradient(circle, #333 0.5px, #333 1.5px, transparent 1.5px, transparent 4px)',
-                    backgroundPosition: 'bottom',
-                    backgroundSize: '4px 1.5px',
-                    backgroundRepeat: 'repeat-x',
-                    pointerEvents: 'none'
-                  }} />
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* 페이징 네비게이션 */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center mt-6 space-x-2">
+              <div className="flex justify-center items-center mt-8 gap-2">
                 {/* 처음 페이지 */}
                 <button
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-all duration-200"
                 >
+                  <svg className="w-3.5 h-3.5 group-disabled:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M15.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 010 1.414zm-6 0a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 1.414L5.414 10l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                  </svg>
                   처음
                 </button>
 
@@ -612,42 +760,54 @@ export default function HomePage() {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-all duration-200"
                 >
+                  <svg className="w-3.5 h-3.5 group-disabled:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
                   이전
                 </button>
 
                 {/* 페이지 번호들 */}
-                {getPageNumbers().map(pageNum => (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`px-3 py-2 text-sm border rounded transition-colors ${
-                      currentPage === pageNum
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                ))}
+                <div className="flex gap-1">
+                  {getPageNumbers().map(pageNum => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`min-w-[2.5rem] h-10 flex items-center justify-center text-sm font-semibold rounded-lg transition-all duration-200 ${
+                        currentPage === pageNum
+                          ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25 scale-105'
+                          : 'bg-white text-gray-700 border border-gray-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
 
                 {/* 다음 페이지 */}
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-all duration-200"
                 >
                   다음
+                  <svg className="w-3.5 h-3.5 group-disabled:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </button>
 
                 {/* 마지막 페이지 */}
                 <button
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-all duration-200"
                 >
                   마지막
+                  <svg className="w-3.5 h-3.5 group-disabled:text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L14.586 10l-4.293-4.293a1 1 0 111.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M4.293 15.707a1 1 0 010-1.414L8.586 10 4.293 5.707a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </button>
               </div>
             )}
@@ -667,51 +827,98 @@ export default function HomePage() {
               <AdSlot position="sidebar" ad={ad} className="w-full h-full" />
             </div>
 
-            {/* 인기글 */}
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h3 className="font-bold text-gray-900 mb-3 pb-2 border-b">🔥 인기글</h3>
-              <div className="space-y-2">
-                {popularPosts.map((post, idx) => (
-                  <div key={post.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded transition-colors">
-                    <span className={`text-xs font-bold px-2 py-1 rounded ${
-                      idx < 3 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <Link 
-                        href={`/post/${post.id}`}
-                        className="text-sm text-gray-900 hover:text-blue-600 truncate block"
-                      >
-                        {post.title}
-                      </Link>
-                      <div className="text-xs text-gray-500 flex items-center gap-2">
-                        <span>{post.nickname}</span>
-                        <span>조회 {post.view_count}</span>
+            {/* 트렌딩 포스트 */}
+            <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl shadow-sm border border-orange-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
+                  </svg>
+                  <h3 className="font-bold text-white text-sm">실시간 인기</h3>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="space-y-3">
+                  {popularPosts.map((post, idx) => (
+                    <Link key={post.id} href={`/post/${post.id}`} className="group block">
+                      <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/70 transition-all duration-200 hover:shadow-sm">
+                        <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 group-hover:scale-110 ${
+                          idx === 0 ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-md' :
+                          idx === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-white shadow-md' :
+                          idx === 2 ? 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white shadow-md' :
+                          'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-600'
+                        }`}>
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2 leading-5">
+                            {post.title}
+                          </p>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                              </svg>
+                              {post.view_count}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                              </svg>
+                              {post.nickname}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* 실시간 글 */}
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h3 className="font-bold text-gray-900 mb-3 pb-2 border-b">⚡ 실시간</h3>
-              <div className="space-y-2">
-                {normalPosts.slice(0, 5).map(post => (
-                  <div key={post.id} className="p-2 hover:bg-gray-50 rounded transition-colors">
-                    <Link 
-                      href={`/post/${post.id}`}
-                      className="text-sm text-gray-900 hover:text-blue-600 block truncate"
-                    >
-                      {post.title}
-                    </Link>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {post.nickname} · {post.created_at.slice(5, 10)}
-                    </div>
+            {/* 최신 글 */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    </svg>
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                   </div>
-                ))}
+                  <h3 className="font-bold text-white text-sm">최신 게시글</h3>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="space-y-3">
+                  {normalPosts.slice(0, 5).map((post, idx) => (
+                    <Link key={post.id} href={`/post/${post.id}`} className="group block">
+                      <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/70 transition-all duration-200 hover:shadow-sm">
+                        <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2 group-hover:bg-indigo-500 transition-colors"></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-5">
+                            {post.title}
+                          </p>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                              </svg>
+                              {post.nickname}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                              </svg>
+                              {post.created_at.slice(5, 10)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
