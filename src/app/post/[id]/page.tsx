@@ -368,10 +368,10 @@ export default function PostDetailPage() {
       <header className="bg-gray-800 shadow-lg h-20">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
           <Link href="/" className="text-white flex items-center gap-3">
-            <div className="text-2xl">🌟</div>
+            <div className="text-2xl"></div>
             <div>
-              <div className="text-2xl font-bold">신복이</div>
-              <div className="text-xs text-gray-300">💡 개인법인회생파산 정보공유</div>
+              <div className="text-2xl font-bold">개인회생119</div>
+              <div className="text-xs text-gray-300">개인·법인회생파산 정보공유</div>
             </div>
           </Link>
           
@@ -515,12 +515,6 @@ export default function PostDetailPage() {
                   >
                     <span className="relative z-10 text-lg">💪</span>
                     <span className="relative z-10 text-sm">힘내세요 {post.cheers || 0}</span>
-                  </button>
-                </div>
-                
-                <div className="flex justify-end">
-                  <button className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
-                    <span>📤 공유</span>
                   </button>
                 </div>
               </div>

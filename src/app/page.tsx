@@ -17,7 +17,7 @@ export default function HomePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const postsPerPage = 20;
+  const postsPerPage = 15;
   const [ad, setAd] = useState(null);
 
   // localStorage에서 힘내 수 가져오기 함수
@@ -372,8 +372,8 @@ export default function HomePage() {
             <Link href="/" className="text-white flex items-center gap-3" onClick={() => { setSelectedCategory('전체'); setCurrentPage(1); }}>
               <div className="text-2xl"></div>
               <div>
-                <div className="text-2xl font-bold">신복이</div>
-                <div className="text-xs text-gray-300">개인법인회생파산 정보공유</div>
+                <div className="text-2xl font-bold">개인회생119</div>
+                <div className="text-xs text-gray-300">개인·법인회생파산 정보공유</div>
               </div>
             </Link>
             
@@ -410,7 +410,7 @@ export default function HomePage() {
           <Link href="/" className="text-white flex items-center gap-3" onClick={() => { setSelectedCategory('전체'); setCurrentPage(1); }}>
             <div className="text-2xl"></div>
             <div>
-              <div className="text-2xl font-bold">신복이</div>
+              <div className="text-2xl font-bold">개인회생119</div>
               <div className="text-xs text-gray-300">개인·법인회생파산 정보공유</div>
             </div>
           </Link>
@@ -579,7 +579,7 @@ export default function HomePage() {
               {noticePosts.map((post, idx) => (
                 <div key={post.id} className="group relative">
                   <Link href={`/post/${post.id}`} className="block">
-                    <div className="bg-gradient-to-r from-red-50 via-pink-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                    <div className="bg-gradient-to-r from-red-50 via-pink-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-3 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
                       {/* 공지 배지와 카테고리 */}
                       <div className="flex items-center gap-3 mb-2">
                         <div className="flex items-center gap-2">
@@ -682,7 +682,7 @@ export default function HomePage() {
                 return (
                   <div key={post.id} className="group relative">
                     <Link href={`/post/${post.id}`} className="block">
-                      <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-200">
+                      <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-200">
                         {/* 번호와 카테고리 */}
                         <div className="flex items-center gap-3 mb-2">
                           <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium min-w-[1.8rem] text-center">

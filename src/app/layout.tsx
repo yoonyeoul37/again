@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
-
-const notoSansKR = Noto_Sans_KR({ 
-  subsets: ["latin"],
-  weight: ["400", "500", "700"]
-});
 
 export const metadata: Metadata = {
   title: "자유 커뮤니티",
@@ -33,7 +27,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         ></script>
       </head>
-      <body className={notoSansKR.className}>
+      <body>
         <AuthProvider>
           {children}
           <Footer />
