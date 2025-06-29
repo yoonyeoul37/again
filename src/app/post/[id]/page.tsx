@@ -5,6 +5,9 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import AdSlot from '@/components/AdSlot';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faComment } from '@fortawesome/free-solid-svg-icons';
+import { useAuth } from '@/components/AuthProvider';
 
 // 구글 애드센스 타입 정의
 declare global {
@@ -16,6 +19,7 @@ declare global {
 export default function PostDetailPage() {
   const params = useParams();
   const postId = params.id;
+  const { user } = useAuth(); // AuthProvider에서 사용자 정보 가져오기
   
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
@@ -49,11 +53,18 @@ export default function PostDetailPage() {
 
   // 힘내 버튼 관련 state
   const [isCheering, setIsCheering] = useState(false);
+  const [cheerCount, setCheerCount] = useState(0);
+  const [hasUserCheered, setHasUserCheered] = useState(false);
 
   // 게시글 수정/삭제 관련 state
   const [showPostDeleteModal, setShowPostDeleteModal] = useState(false);
   const [postDeleteForm, setPostDeleteForm] = useState({ password: '' });
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // AuthProvider에서 관리자 상태 확인
+  
+  // 글 작성자 여부 확인 state
+  const [isPostOwner, setIsPostOwner] = useState(false);
 
   // 샘플 데이터
   const samplePost = {
@@ -183,12 +194,678 @@ export default function PostDetailPage() {
     );
   }
 
+  // 힘내 기능 관련 함수들
+  const getCheerCount = (postId) => {
+    try {
+      const cheersKey = `post_cheers_${postId}`;
+      const savedCheers = parseInt(localStorage.getItem(cheersKey) || '0');
+      return savedCheers;
+    } catch (error) {
+      console.error('힘내 수 로드 실패:', error);
+      return 0;
+    }
+  };
+
+  const checkUserCheered = (postId) => {
+    try {
+      const clickedKey = `post_cheered_${postId}`;
+      return localStorage.getItem(clickedKey) === 'true';
+    } catch (error) {
+      console.error('힘내 클릭 여부 확인 실패:', error);
+      return false;
+    }
+  };
+
+  const handleCheerClick = () => {
+    if (hasUserCheered || isCheering) return;
+
+    setIsCheering(true);
+    
+    try {
+      const cheersKey = `post_cheers_${postId}`;
+      const clickedKey = `post_cheered_${postId}`;
+      
+      // 힘내 수 증가
+      const newCheerCount = cheerCount + 1;
+      setCheerCount(newCheerCount);
+      localStorage.setItem(cheersKey, newCheerCount.toString());
+      
+      // 사용자가 클릭했다고 기록
+      setHasUserCheered(true);
+      localStorage.setItem(clickedKey, 'true');
+      
+      console.log('💪 힘내세요 버튼 클릭됨!', { postId, newCheerCount });
+      
+    } catch (error) {
+      console.error('힘내 버튼 처리 실패:', error);
+    } finally {
+      setTimeout(() => setIsCheering(false), 500);
+    }
+  };
+
+  // AuthProvider에서 관리자 상태 확인
+  const isAdmin = user?.role === 'admin';
+
+  // 전체 댓글 개수 계산 함수 (중첩 댓글 포함)
+  const getTotalCommentCount = (comments) => {
+    let total = 0;
+    comments.forEach(comment => {
+      total += 1; // 원댓글
+      if (comment.replies && comment.replies.length > 0) {
+        total += comment.replies.length; // 모든 답글 포함
+      }
+    });
+    return total;
+  };
+
+  // 글 작성자 확인 함수
+  const checkPostOwner = (postId) => {
+    try {
+      const ownedPosts = JSON.parse(localStorage.getItem('ownedPosts') || '[]');
+      return ownedPosts.includes(postId.toString());
+    } catch (error) {
+      console.error('글 소유권 확인 실패:', error);
+      return false;
+    }
+  };
+
+  // 글 소유권 등록 함수 (글 작성 시 호출)
+  const registerPostOwnership = (postId) => {
+    try {
+      const ownedPosts = JSON.parse(localStorage.getItem('ownedPosts') || '[]');
+      if (!ownedPosts.includes(postId.toString())) {
+        ownedPosts.push(postId.toString());
+        localStorage.setItem('ownedPosts', JSON.stringify(ownedPosts));
+        console.log('✅ 글 소유권 등록:', postId);
+      }
+    } catch (error) {
+      console.error('글 소유권 등록 실패:', error);
+    }
+  };
+
+  // 관리자용 댓글 삭제 함수
+  const handleAdminDeleteComment = async (commentId, isReply = false, parentId = null) => {
+    if (!isAdmin) {
+      alert('관리자만 이용할 수 있는 기능입니다.');
+      return;
+    }
+
+    if (!confirm('정말 이 댓글을 삭제하시겠습니까?')) return;
+
+    try {
+      // Supabase에서 삭제 시도
+      try {
+        const { error } = await supabase
+          .from('comments')
+          .delete()
+          .eq('id', commentId);
+
+        if (!error) {
+          console.log('✅ 관리자가 댓글을 삭제했습니다:', commentId);
+        }
+      } catch (dbError) {
+        console.log('DB 삭제 실패:', dbError);
+      }
+
+      // 댓글 목록에서 제거
+      if (isReply) {
+        setComments(prev => prev.map(comment => {
+          if (comment.id === parentId) {
+            return {
+              ...comment,
+              replies: comment.replies?.filter(reply => reply.id !== commentId) || []
+            };
+          }
+          return comment;
+        }));
+      } else {
+        setComments(prev => prev.filter(comment => comment.id !== commentId));
+      }
+
+      // 게시글의 댓글 개수 업데이트 (관리자 댓글 삭제 시 감소)
+      if (post) {
+        try {
+          const { error: updateError } = await supabase
+            .from('posts')
+            .update({ 
+              comment_count: Math.max(0, (post.comment_count || 0) - 1) 
+            })
+            .eq('id', postId);
+
+          if (!updateError) {
+            // 현재 페이지의 post 상태도 업데이트
+            setPost(prev => prev ? ({
+              ...prev,
+              comment_count: Math.max(0, (prev.comment_count || 0) - 1)
+            }) : prev);
+            console.log('✅ 게시글 댓글 개수 업데이트 완료 (관리자 댓글 삭제)');
+          } else {
+            console.log('⚠️ 게시글 댓글 개수 업데이트 실패:', updateError);
+          }
+        } catch (updateError) {
+          console.log('⚠️ 게시글 댓글 개수 업데이트 중 오류:', updateError);
+        }
+      }
+
+      alert('댓글이 삭제되었습니다.');
+
+    } catch (error) {
+      console.error('관리자 댓글 삭제 실패:', error);
+      alert('댓글 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 관리자용 게시글 삭제 함수
+  const handleAdminDeletePost = async () => {
+    if (!isAdmin) {
+      alert('관리자만 이용할 수 있는 기능입니다.');
+      return;
+    }
+
+    if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
+
+    try {
+      // Supabase에서 게시글 삭제
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+
+      if (!error) {
+        alert('게시글이 삭제되었습니다.');
+        window.location.href = '/';
+      } else {
+        throw new Error('게시글 삭제 실패');
+      }
+    } catch (error) {
+      console.error('관리자 게시글 삭제 실패:', error);
+      alert('게시글 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 일반 사용자 게시글 수정 함수
+  const handleEditPost = async () => {
+    const password = prompt('게시글을 수정하려면 비밀번호를 입력하세요:');
+    if (!password) return;
+
+    try {
+      // 게시글에 비밀번호가 설정되지 않은 경우 수정 불가
+      if (!post.password) {
+        alert('이 게시글은 비밀번호가 설정되지 않아 수정할 수 없습니다.');
+        return;
+      }
+
+      // 게시글 비밀번호 확인 (실제로는 해시된 비밀번호와 비교해야 함)
+      if (post.password !== password) {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+
+      // 수정 페이지로 이동 (실제 구현에서는 수정 페이지를 만들어야 함)
+      alert('수정 기능은 준비 중입니다.');
+      // window.location.href = `/board/edit/${postId}`;
+    } catch (error) {
+      console.error('게시글 수정 실패:', error);
+      alert('게시글 수정 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 일반 사용자 게시글 삭제 함수
+  const handleDeletePost = async () => {
+    const password = prompt('게시글을 삭제하려면 비밀번호를 입력하세요:');
+    if (!password) return;
+
+    try {
+      // 디버깅: 게시글 비밀번호 상태 확인
+      console.log('🔍 게시글 비밀번호 디버깅:', {
+        'post.password': post.password,
+        'typeof post.password': typeof post.password,
+        'post.password length': post.password?.length,
+        '입력한 password': password,
+        '입력한 password length': password.length
+      });
+
+      // 게시글에 비밀번호가 설정되지 않은 경우 삭제 불가
+      if (!post.password) {
+        alert('이 게시글은 비밀번호가 설정되지 않아 삭제할 수 없습니다.');
+        console.log('❌ 게시글에 비밀번호가 없음');
+        return;
+      }
+
+      // 게시글 비밀번호 확인 (실제로는 해시된 비밀번호와 비교해야 함)
+      if (post.password !== password) {
+        alert('비밀번호가 일치하지 않습니다.');
+        console.log('❌ 비밀번호 불일치');
+        return;
+      }
+
+      console.log('✅ 비밀번호 확인 완료, 삭제 진행');
+
+      if (!confirm('정말 이 게시글을 삭제하시겠습니까?')) return;
+
+      // Supabase에서 게시글 삭제
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+
+      if (!error) {
+        alert('게시글이 삭제되었습니다.');
+        window.location.href = '/';
+      } else {
+        throw new Error('게시글 삭제 실패');
+      }
+    } catch (error) {
+      console.error('게시글 삭제 실패:', error);
+      alert('게시글 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 답글 작성 처리 함수
+  const handleReplySubmit = async (e, parentId) => {
+    e.preventDefault();
+    
+    // 가능한 모든 키를 확인
+    const possibleKeys = [
+      `reply_${parentId}`,
+      `nested_reply_${parentId}`,
+      `${parentId}` // 단순 ID 키도 확인
+    ];
+    
+    let replyForm = null;
+    let activeFormKey = null;
+    
+    // 폼 데이터가 있는 키 찾기
+    for (const key of possibleKeys) {
+      if (replyForms[key] && replyForms[key].nickname?.trim()) {
+        replyForm = replyForms[key];
+        activeFormKey = key;
+        break;
+      }
+    }
+    
+    if (!replyForm || !replyForm.nickname?.trim() || !replyForm.password?.trim() || !replyForm.content?.trim()) {
+      alert('모든 필드를 입력해주세요.');
+      console.log('폼 데이터 확인:', { replyForms, parentId, possibleKeys });
+      return;
+    }
+
+    setIsSubmittingReply(prev => ({ ...prev, [activeFormKey]: true }));
+
+    try {
+      const newReply = {
+        id: Date.now(),
+        post_id: postId,
+        nickname: replyForm.nickname.trim(),
+        password: replyForm.password,
+        content: replyForm.content.trim(),
+        created_at: new Date().toISOString(),
+        parent_id: parentId
+      };
+
+      // Supabase에 답글 저장 시도
+      try {
+        const { data, error } = await supabase
+          .from('comments')
+          .insert([{
+            post_id: postId,
+            nickname: newReply.nickname,
+            password: newReply.password,
+            content: newReply.content,
+            parent_id: parentId
+          }])
+          .select()
+          .single();
+
+        if (!error && data) {
+          newReply.id = data.id;
+          console.log('✅ 답글이 데이터베이스에 저장되었습니다:', data);
+        } else {
+          throw new Error('DB 저장 실패');
+        }
+      } catch (dbError) {
+        console.log('DB 저장 실패, localStorage에 저장:', dbError);
+      }
+
+      // 댓글 목록에서 해당 부모 댓글 찾아서 답글 추가
+      setComments(prev => prev.map(comment => {
+        if (comment.id === parentId) {
+          return {
+            ...comment,
+            replies: [...(comment.replies || []), newReply]
+          };
+        }
+        return comment;
+      }));
+
+      // 게시글의 댓글 개수 업데이트 (답글도 댓글 수에 포함)
+      if (post) {
+        try {
+          const { error: updateError } = await supabase
+            .from('posts')
+            .update({ 
+              comment_count: (post.comment_count || 0) + 1 
+            })
+            .eq('id', postId);
+
+          if (!updateError) {
+            // 현재 페이지의 post 상태도 업데이트
+            setPost(prev => prev ? ({
+              ...prev,
+              comment_count: (prev.comment_count || 0) + 1
+            }) : prev);
+            console.log('✅ 게시글 댓글 개수 업데이트 완료 (답글 추가)');
+          } else {
+            console.log('⚠️ 게시글 댓글 개수 업데이트 실패:', updateError);
+          }
+        } catch (updateError) {
+          console.log('⚠️ 게시글 댓글 개수 업데이트 중 오류:', updateError);
+        }
+      }
+
+      // 답글 폼 초기화 및 숨기기
+      setReplyForms(prev => ({ ...prev, [activeFormKey]: { nickname: '', password: '', content: '' } }));
+      setShowReplyForm(prev => ({ ...prev, [activeFormKey]: false }));
+
+      alert('답글이 작성되었습니다!');
+
+    } catch (error) {
+      console.error('답글 작성 실패:', error);
+      alert('답글 작성 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsSubmittingReply(prev => ({ ...prev, [activeFormKey]: false }));
+    }
+  };
+
+  // 댓글 삭제 처리 함수
+  const handleDeleteComment = async (commentId, isReply = false, parentId = null) => {
+    const password = prompt('댓글을 삭제하려면 비밀번호를 입력하세요:');
+    if (!password) return;
+
+    try {
+      // 댓글 찾기
+      let targetComment = null;
+      if (isReply) {
+        const parentComment = comments.find(c => c.id === parentId);
+        targetComment = parentComment?.replies?.find(r => r.id === commentId);
+      } else {
+        targetComment = comments.find(c => c.id === commentId);
+      }
+
+      if (!targetComment) {
+        alert('댓글을 찾을 수 없습니다.');
+        return;
+      }
+
+      // 비밀번호 확인
+      if (targetComment.password !== password) {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+
+      // Supabase에서 삭제 시도
+      try {
+        const { error } = await supabase
+          .from('comments')
+          .delete()
+          .eq('id', commentId);
+
+        if (error) {
+          console.log('DB 삭제 실패:', error);
+        } else {
+          console.log('✅ 댓글이 데이터베이스에서 삭제되었습니다');
+        }
+      } catch (dbError) {
+        console.log('DB 삭제 실패:', dbError);
+      }
+
+      // 댓글 목록에서 제거
+      if (isReply) {
+        setComments(prev => prev.map(comment => {
+          if (comment.id === parentId) {
+            return {
+              ...comment,
+              replies: comment.replies?.filter(reply => reply.id !== commentId) || []
+            };
+          }
+          return comment;
+        }));
+      } else {
+        setComments(prev => prev.filter(comment => comment.id !== commentId));
+      }
+
+      // 게시글의 댓글 개수 업데이트 (댓글 삭제 시 감소)
+      if (post) {
+        try {
+          const { error: updateError } = await supabase
+            .from('posts')
+            .update({ 
+              comment_count: Math.max(0, (post.comment_count || 0) - 1) 
+            })
+            .eq('id', postId);
+
+          if (!updateError) {
+            // 현재 페이지의 post 상태도 업데이트
+            setPost(prev => prev ? ({
+              ...prev,
+              comment_count: Math.max(0, (prev.comment_count || 0) - 1)
+            }) : prev);
+            console.log('✅ 게시글 댓글 개수 업데이트 완료 (댓글 삭제)');
+          } else {
+            console.log('⚠️ 게시글 댓글 개수 업데이트 실패:', updateError);
+          }
+        } catch (updateError) {
+          console.log('⚠️ 게시글 댓글 개수 업데이트 중 오류:', updateError);
+        }
+      }
+
+      alert('댓글이 삭제되었습니다.');
+
+    } catch (error) {
+      console.error('댓글 삭제 실패:', error);
+      alert('댓글 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 댓글 수정 처리 함수
+  const handleEditComment = async (commentId, isReply = false, parentId = null) => {
+    const password = prompt('댓글을 수정하려면 비밀번호를 입력하세요:');
+    if (!password) return;
+
+    try {
+      // 댓글 찾기
+      let targetComment = null;
+      if (isReply) {
+        const parentComment = comments.find(c => c.id === parentId);
+        targetComment = parentComment?.replies?.find(r => r.id === commentId);
+      } else {
+        targetComment = comments.find(c => c.id === commentId);
+      }
+
+      if (!targetComment) {
+        alert('댓글을 찾을 수 없습니다.');
+        return;
+      }
+
+      // 비밀번호 확인
+      if (targetComment.password !== password) {
+        alert('비밀번호가 일치하지 않습니다.');
+        return;
+      }
+
+      // 새 내용 입력받기
+      const newContent = prompt('새 댓글 내용을 입력하세요:', targetComment.content);
+      if (!newContent || newContent.trim() === '') return;
+
+      // Supabase에서 수정 시도
+      try {
+        const { error } = await supabase
+          .from('comments')
+          .update({ content: newContent.trim() })
+          .eq('id', commentId);
+
+        if (error) {
+          console.log('DB 수정 실패:', error);
+        } else {
+          console.log('✅ 댓글이 데이터베이스에서 수정되었습니다');
+        }
+      } catch (dbError) {
+        console.log('DB 수정 실패:', dbError);
+      }
+
+      // 댓글 목록에서 수정
+      if (isReply) {
+        setComments(prev => prev.map(comment => {
+          if (comment.id === parentId) {
+            return {
+              ...comment,
+              replies: comment.replies?.map(reply => 
+                reply.id === commentId 
+                  ? { ...reply, content: newContent.trim() }
+                  : reply
+              ) || []
+            };
+          }
+          return comment;
+        }));
+      } else {
+        setComments(prev => prev.map(comment => 
+          comment.id === commentId 
+            ? { ...comment, content: newContent.trim() }
+            : comment
+        ));
+      }
+
+      alert('댓글이 수정되었습니다.');
+
+    } catch (error) {
+      console.error('댓글 수정 실패:', error);
+      alert('댓글 수정 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 댓글 작성 처리 함수
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!commentForm.nickname.trim() || !commentForm.password.trim() || !commentForm.content.trim()) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+
+    setIsSubmittingComment(true);
+
+    try {
+      const newComment = {
+        id: Date.now(),
+        post_id: postId,
+        nickname: commentForm.nickname.trim(),
+        password: commentForm.password, // 실제로는 해시 처리해야 함
+        content: commentForm.content.trim(),
+        created_at: new Date().toISOString(),
+        parent_id: null,
+        replies: []
+      };
+
+      // Supabase에 댓글 저장 시도
+      try {
+        const { data, error } = await supabase
+          .from('comments')
+          .insert([{
+            post_id: postId,
+            nickname: newComment.nickname,
+            password: newComment.password,
+            content: newComment.content,
+            parent_id: null
+          }])
+          .select()
+          .single();
+
+        if (!error && data) {
+          newComment.id = data.id;
+          console.log('✅ 댓글이 데이터베이스에 저장되었습니다:', data);
+        } else {
+          throw new Error('DB 저장 실패');
+        }
+      } catch (dbError) {
+        console.log('DB 저장 실패, localStorage에 저장:', dbError);
+        
+        // localStorage에 백업 저장
+        const commentsKey = `comments_${postId}`;
+        const existingComments = JSON.parse(localStorage.getItem(commentsKey) || '[]');
+        existingComments.push(newComment);
+        localStorage.setItem(commentsKey, JSON.stringify(existingComments));
+      }
+
+      // 댓글 목록 업데이트
+      setComments(prev => [...prev, newComment]);
+
+      // 게시글의 댓글 개수 업데이트
+      if (post) {
+        try {
+          const { error: updateError } = await supabase
+            .from('posts')
+            .update({ 
+              comment_count: (post.comment_count || 0) + 1 
+            })
+            .eq('id', postId);
+
+          if (!updateError) {
+            // 현재 페이지의 post 상태도 업데이트
+            setPost(prev => prev ? ({
+              ...prev,
+              comment_count: (prev.comment_count || 0) + 1
+            }) : prev);
+            console.log('✅ 게시글 댓글 개수 업데이트 완료');
+          } else {
+            console.log('⚠️ 게시글 댓글 개수 업데이트 실패:', updateError);
+          }
+        } catch (updateError) {
+          console.log('⚠️ 게시글 댓글 개수 업데이트 중 오류:', updateError);
+        }
+      }
+
+      // 폼 초기화
+      setCommentForm({
+        nickname: '',
+        password: '',
+        content: ''
+      });
+
+      alert('댓글이 작성되었습니다!');
+
+    } catch (error) {
+      console.error('댓글 작성 실패:', error);
+      alert('댓글 작성 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
   useEffect(() => {
     fetchPost();
     fetchAds();
     fetchRelatedPosts();
     fetchPopularPosts();
+    
+    // 힘내 관련 초기화
+    if (postId) {
+      const initialCheerCount = getCheerCount(postId);
+      const userCheered = checkUserCheered(postId);
+      setCheerCount(initialCheerCount);
+      setHasUserCheered(userCheered);
+      
+      // 글 작성자 확인
+      const ownerStatus = checkPostOwner(postId);
+      setIsPostOwner(ownerStatus);
+      console.log('📝 글 작성자 확인:', { postId, isOwner: ownerStatus });
+    }
   }, [postId]);
+
+  // AuthProvider를 사용하므로 별도의 관리자 상태 체크 불필요
+  useEffect(() => {
+    console.log('🛡️ 관리자 상태:', user?.role === 'admin');
+  }, [user]);
 
   // 실제 게시글 데이터 가져오기
   const fetchPost = async () => {
@@ -474,27 +1151,129 @@ export default function PostDetailPage() {
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clipRule="evenodd" />
                         </svg>
-                        {comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0)}
+                        {getTotalCommentCount(comments)}
                       </span>
                     </div>
                   </div>
                 </div>
                 
-                <h1 className="text-2xl font-bold text-gray-900 leading-tight mb-3">{post.title}</h1>
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight mb-4">{post.title}</h1>
                 
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                    </svg>
-                    <span className="font-medium text-gray-800">{post.nickname}</span>
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                    </svg>
-                    {post.created_at}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                      <span className="font-medium text-gray-800">{post.nickname}</span>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                      </svg>
+                      {post.created_at}
+                    </span>
+                  </div>
+                  
+                  {/* 수정/삭제 버튼을 메타 정보 영역 우측에 배치 */}
+                  <div className="flex items-center gap-2">
+
+                    {isAdmin ? (
+                      /* 관리자 전용 버튼들 */
+                      <>
+                        <button
+                          onClick={() => {
+                            console.log('🔴 관리자 수정 버튼 클릭됨');
+                            handleEditPost();
+                          }}
+                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded transition-colors flex items-center gap-1"
+                          title="관리자 전용 수정"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                          관리자 수정
+                        </button>
+                        <button
+                          onClick={() => {
+                            console.log('🔴 관리자 삭제 버튼 클릭됨');
+                            handleAdminDeletePost();
+                          }}
+                          className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded transition-colors flex items-center gap-1"
+                          title="관리자 전용 삭제"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          관리자 삭제
+                        </button>
+
+                      </>
+                    ) : isPostOwner ? (
+                      /* 글 작성자만 볼 수 있는 수정/삭제 버튼 */
+                      <>
+                        <button
+                          onClick={() => {
+                            console.log('🟡 글 소유자 수정 버튼 클릭됨');
+                            handleEditPost();
+                          }}
+                          className="px-2 py-1 bg-gray-400 hover:bg-gray-500 text-white text-xs rounded transition-colors flex items-center gap-1"
+                          title="게시글 수정"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                          소유자 수정
+                        </button>
+                        <button
+                          onClick={() => {
+                            console.log('🟡 글 소유자 삭제 버튼 클릭됨');
+                            handleDeletePost();
+                          }}
+                          className="px-2 py-1 bg-red-400 hover:bg-red-500 text-white text-xs rounded transition-colors flex items-center gap-1"
+                          title="게시글 삭제"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          소유자 삭제
+                        </button>
+                      </>
+                    ) : (
+                      /* 일반 사용자용 수정/삭제 버튼 (비밀번호 확인 필요) */
+                      <>
+                        <button
+                          onClick={() => {
+                            console.log('🟢 일반 사용자 수정 버튼 클릭됨');
+                            handleEditPost();
+                          }}
+                          className="px-2 py-1 bg-blue-400 hover:bg-blue-500 text-white text-xs rounded transition-colors flex items-center gap-1"
+                          title="게시글 수정"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                          일반 수정
+                        </button>
+                        <button
+                          onClick={() => {
+                            console.log('🟢 일반 사용자 삭제 버튼 클릭됨');
+                            handleDeletePost();
+                          }}
+                          className="px-2 py-1 bg-red-400 hover:bg-red-500 text-white text-xs rounded transition-colors flex items-center gap-1"
+                          title="게시글 삭제"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          일반 삭제
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -511,10 +1290,25 @@ export default function PostDetailPage() {
               <div className="mt-6 pt-4 border-t border-gray-100">
                 <div className="flex justify-center mb-4">
                   <button 
-                    className={`relative overflow-hidden group flex items-center space-x-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 transform bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:scale-105 hover:shadow-lg active:scale-95`}
+                    onClick={handleCheerClick}
+                    disabled={hasUserCheered || isCheering}
+                    className={`relative overflow-hidden group flex items-center space-x-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 transform ${
+                      hasUserCheered 
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white cursor-not-allowed' 
+                        : isCheering 
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-600 text-white scale-110 animate-pulse' 
+                        : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:scale-105 hover:shadow-lg active:scale-95 cursor-pointer'
+                    }`}
                   >
-                    <span className="relative z-10 text-lg">💪</span>
-                    <span className="relative z-10 text-sm">힘내세요 {post.cheers || 0}</span>
+                    <span className="relative z-10 text-lg">
+                      {hasUserCheered ? '✅' : isCheering ? '🎉' : '💪'}
+                    </span>
+                    <span className="relative z-10 text-sm">
+                      {hasUserCheered ? '힘내줬어요!' : isCheering ? '힘내기!' : '힘내세요'} {cheerCount}
+                    </span>
+                    {isCheering && (
+                      <div className="absolute inset-0 rounded-full bg-white/20 animate-ping"></div>
+                    )}
                   </button>
                 </div>
               </div>
@@ -534,7 +1328,7 @@ export default function PostDetailPage() {
                     <div>
                       <h2 className="text-lg font-bold text-white">댓글</h2>
                       <p className="text-blue-100 text-sm">
-                        총 {comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0)}개의 댓글이 있습니다
+                        총 {getTotalCommentCount(comments)}개의 댓글이 있습니다
                       </p>
                     </div>
                   </div>
@@ -542,11 +1336,7 @@ export default function PostDetailPage() {
 
                 {/* 댓글 작성 폼 */}
                 <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-b border-blue-100">
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    // 댓글 작성 로직
-                    console.log('댓글 작성:', commentForm);
-                  }} className="space-y-4">
+                  <form onSubmit={handleCommentSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <input
                         type="text"
@@ -621,16 +1411,110 @@ export default function PostDetailPage() {
                             {comment.content}
                           </div>
                           <div className="flex items-center gap-3 text-sm">
-                            <button className="text-blue-600 hover:text-blue-700 font-medium">
+                            <button 
+                              onClick={() => setShowReplyForm(prev => ({ ...prev, [`reply_${comment.id}`]: !prev[`reply_${comment.id}`] }))}
+                              className="text-blue-600 hover:text-blue-700 font-medium"
+                            >
                               답글
                             </button>
-                            <button className="text-gray-500 hover:text-gray-700">
+                            <button 
+                              onClick={() => handleEditComment(comment.id, false)}
+                              className="text-gray-500 hover:text-gray-700"
+                            >
                               수정
                             </button>
-                            <button className="text-red-500 hover:text-red-700">
+                            <button 
+                              onClick={() => handleDeleteComment(comment.id, false)}
+                              className="text-red-500 hover:text-red-700"
+                            >
                               삭제
                             </button>
+                            {isAdmin && (
+                              <button 
+                                onClick={() => handleAdminDeleteComment(comment.id, false)}
+                                className="text-red-600 hover:text-red-800 font-medium px-2 py-1 bg-red-50 hover:bg-red-100 rounded text-xs"
+                                title="관리자 전용 삭제"
+                              >
+                                🛡️ 삭제
+                              </button>
+                            )}
                           </div>
+
+                          {/* 답글 작성 폼 */}
+                          {showReplyForm[`reply_${comment.id}`] && (
+                            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <form onSubmit={(e) => handleReplySubmit(e, comment.id)} className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <input
+                                    type="text"
+                                    placeholder="닉네임"
+                                    value={replyForms[`reply_${comment.id}`]?.nickname || ''}
+                                    onChange={(e) => setReplyForms(prev => ({
+                                      ...prev,
+                                      [`reply_${comment.id}`]: { 
+                                        nickname: '', 
+                                        password: '', 
+                                        content: '', 
+                                        ...prev[`reply_${comment.id}`], 
+                                        nickname: e.target.value 
+                                      }
+                                    }))}
+                                    className="px-3 py-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                    required
+                                  />
+                                  <input
+                                    type="password"
+                                    placeholder="비밀번호"
+                                    value={replyForms[`reply_${comment.id}`]?.password || ''}
+                                    onChange={(e) => setReplyForms(prev => ({
+                                      ...prev,
+                                      [`reply_${comment.id}`]: { 
+                                        nickname: '', 
+                                        password: '', 
+                                        content: '', 
+                                        ...prev[`reply_${comment.id}`], 
+                                        password: e.target.value 
+                                      }
+                                    }))}
+                                    className="px-3 py-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                    required
+                                  />
+                                </div>
+                                <textarea
+                                  placeholder="답글을 작성해주세요..."
+                                  value={replyForms[`reply_${comment.id}`]?.content || ''}
+                                  onChange={(e) => setReplyForms(prev => ({
+                                    ...prev,
+                                    [`reply_${comment.id}`]: { 
+                                      nickname: '', 
+                                      password: '', 
+                                      content: '', 
+                                      ...prev[`reply_${comment.id}`], 
+                                      content: e.target.value 
+                                    }
+                                  }))}
+                                  className="w-full px-3 py-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm h-20 resize-none"
+                                  required
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowReplyForm(prev => ({ ...prev, [`reply_${comment.id}`]: false }))}
+                                    className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded text-sm transition-colors"
+                                  >
+                                    취소
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    disabled={isSubmittingReply[`reply_${comment.id}`]}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm transition-colors"
+                                  >
+                                    {isSubmittingReply[`reply_${comment.id}`] ? '작성 중...' : '답글 작성'}
+                                  </button>
+                                </div>
+                              </form>
+                            </div>
+                          )}
 
                           {/* 답글 리스트 */}
                           {comment.replies && comment.replies.length > 0 && (
@@ -653,19 +1537,113 @@ export default function PostDetailPage() {
                                       {reply.content}
                                     </div>
                                     <div className="flex items-center gap-3 text-xs">
-                                      <button className="text-blue-600 hover:text-blue-700 font-medium">
+                                      <button 
+                                        onClick={() => setShowReplyForm(prev => ({ ...prev, [`nested_reply_${comment.id}`]: !prev[`nested_reply_${comment.id}`] }))}
+                                        className="text-blue-600 hover:text-blue-700 font-medium"
+                                      >
                                         답글
                                       </button>
-                                      <button className="text-gray-500 hover:text-gray-700">
+                                      <button 
+                                        onClick={() => handleEditComment(reply.id, true, comment.id)}
+                                        className="text-gray-500 hover:text-gray-700"
+                                      >
                                         수정
                                       </button>
-                                      <button className="text-red-500 hover:text-red-700">
+                                      <button 
+                                        onClick={() => handleDeleteComment(reply.id, true, comment.id)}
+                                        className="text-red-500 hover:text-red-700"
+                                      >
                                         삭제
                                       </button>
+                                      {isAdmin && (
+                                        <button 
+                                          onClick={() => handleAdminDeleteComment(reply.id, true, comment.id)}
+                                          className="text-red-600 hover:text-red-800 font-medium px-2 py-1 bg-red-50 hover:bg-red-100 rounded text-xs"
+                                          title="관리자 전용 삭제"
+                                        >
+                                          🛡️ 삭제
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
                               ))}
+                              
+                              {/* 답글의 답글 작성 폼 (들여쓰기 같은 레벨에 표시) */}
+                              {showReplyForm[`nested_reply_${comment.id}`] && (
+                                <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                                  <form onSubmit={(e) => handleReplySubmit(e, comment.id)} className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <input
+                                        type="text"
+                                        placeholder="닉네임"
+                                        value={replyForms[`nested_reply_${comment.id}`]?.nickname || ''}
+                                        onChange={(e) => setReplyForms(prev => ({
+                                          ...prev,
+                                          [`nested_reply_${comment.id}`]: { 
+                                            nickname: '', 
+                                            password: '', 
+                                            content: '', 
+                                            ...prev[`nested_reply_${comment.id}`], 
+                                            nickname: e.target.value 
+                                          }
+                                        }))}
+                                        className="px-3 py-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                        required
+                                      />
+                                      <input
+                                        type="password"
+                                        placeholder="비밀번호"
+                                        value={replyForms[`nested_reply_${comment.id}`]?.password || ''}
+                                        onChange={(e) => setReplyForms(prev => ({
+                                          ...prev,
+                                          [`nested_reply_${comment.id}`]: { 
+                                            nickname: '', 
+                                            password: '', 
+                                            content: '', 
+                                            ...prev[`nested_reply_${comment.id}`], 
+                                            password: e.target.value 
+                                          }
+                                        }))}
+                                        className="px-3 py-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                        required
+                                      />
+                                    </div>
+                                    <textarea
+                                      placeholder="답글을 작성해주세요..."
+                                      value={replyForms[`nested_reply_${comment.id}`]?.content || ''}
+                                      onChange={(e) => setReplyForms(prev => ({
+                                        ...prev,
+                                        [`nested_reply_${comment.id}`]: { 
+                                          nickname: '', 
+                                          password: '', 
+                                          content: '', 
+                                          ...prev[`nested_reply_${comment.id}`], 
+                                          content: e.target.value 
+                                        }
+                                      }))}
+                                      className="w-full px-3 py-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm h-20 resize-none"
+                                      required
+                                    />
+                                    <div className="flex justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowReplyForm(prev => ({ ...prev, [`nested_reply_${comment.id}`]: false }))}
+                                        className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded text-sm transition-colors"
+                                      >
+                                        취소
+                                      </button>
+                                      <button
+                                        type="submit"
+                                        disabled={isSubmittingReply[`nested_reply_${comment.id}`]}
+                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded text-sm transition-colors"
+                                      >
+                                        {isSubmittingReply[`nested_reply_${comment.id}`] ? '작성 중...' : '답글 작성'}
+                                      </button>
+                                    </div>
+                                  </form>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -735,11 +1713,6 @@ export default function PostDetailPage() {
                             
                             <h3 className="text-base font-semibold text-gray-900 group-hover:text-blue-600 transition-colors leading-6 mb-3">
                               {post.title}
-                              {post.comment_count > 0 && (
-                                <span className="text-sm text-blue-600 ml-2 font-medium">
-                                  💬 {post.comment_count}
-                                </span>
-                              )}
                             </h3>
                             
                             <div className="flex items-center justify-between text-sm text-gray-600">
@@ -757,6 +1730,12 @@ export default function PostDetailPage() {
                                   </svg>
                                   {post.view_count}
                                 </span>
+                                {post.comment_count > 0 && (
+                                  <span className="flex items-center gap-1 text-blue-600">
+                                    <FontAwesomeIcon icon={faComment} className="w-4 h-4" />
+                                    {post.comment_count}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

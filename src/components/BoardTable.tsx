@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faComment } from '@fortawesome/free-solid-svg-icons';
 
 interface Post {
   id: string;
@@ -56,6 +58,7 @@ export default function BoardTable() {
               <th className="py-3 px-2 text-center">닉네임</th>
               <th className="py-3 px-2 text-center">날짜</th>
               <th className="py-3 px-2 text-center">조회수</th>
+              <th className="py-3 px-2 text-center">댓글</th>
               <th className="py-3 px-2 text-center">힘내</th>
             </tr>
           </thead>
@@ -68,13 +71,18 @@ export default function BoardTable() {
                   <Link href={`/post/${post.id}`} className="text-blue-700 hover:underline">
                     {post.title}
                   </Link>
-                  {post.comment_count > 0 && (
-                    <span className="ml-1 text-xs text-blue-500">💬 {post.comment_count}</span>
-                  )}
                 </td>
                 <td className="py-2 px-2 text-center">{post.nickname}</td>
                 <td className="py-2 px-2 text-center">{new Date(post.created_at).toLocaleDateString('ko-KR')}</td>
                 <td className="py-2 px-2 text-center">{post.view_count ?? 0}</td>
+                <td className="py-2 px-2 text-center">
+                  {post.comment_count > 0 && (
+                    <span className="text-blue-600 flex items-center justify-center gap-1">
+                      <FontAwesomeIcon icon={faComment} className="w-3 h-3" />
+                      {post.comment_count}
+                    </span>
+                  )}
+                </td>
                 <td className="py-2 px-2 text-center text-orange-600 font-bold">{post.likes ?? 0}</td>
               </tr>
             ))}
