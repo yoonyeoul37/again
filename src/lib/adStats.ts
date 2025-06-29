@@ -1,7 +1,21 @@
 import { supabase } from './supabaseClient';
 
+// UUID 형식 체크 함수
+function isValidUUID(id: any): boolean {
+  return typeof id === 'string' && 
+         id.length === 36 && 
+         id.includes('-') && 
+         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
 // 광고 노출 기록
-export async function recordImpression(adId: number, pageUrl: string) {
+export async function recordImpression(adId: number | string, pageUrl: string) {
+  // UUID 형식이 아니면 기록하지 않음
+  if (!isValidUUID(adId)) {
+    console.log('Impression 기록 건너뜀: UUID 형식이 아님', adId);
+    return null;
+  }
+
   try {
     const { data, error } = await supabase
       .from('ad_impressions')
@@ -14,7 +28,7 @@ export async function recordImpression(adId: number, pageUrl: string) {
       .single();
 
     if (error) {
-      console.error('Impression 기록 실패:', JSON.stringify(error));
+      console.error('Impression 기록 실패:', JSON.stringify(error, null, 2));
       return null;
     }
 
@@ -26,7 +40,13 @@ export async function recordImpression(adId: number, pageUrl: string) {
 }
 
 // 광고 클릭 기록
-export async function recordClick(adId: number, impressionId?: number) {
+export async function recordClick(adId: number | string, impressionId?: number) {
+  // UUID 형식이 아니면 기록하지 않음
+  if (!isValidUUID(adId)) {
+    console.log('Click 기록 건너뜀: UUID 형식이 아님', adId);
+    return null;
+  }
+
   try {
     const { data, error } = await supabase
       .from('ad_clicks')
@@ -40,7 +60,7 @@ export async function recordClick(adId: number, impressionId?: number) {
       .single();
 
     if (error) {
-      console.error('Click 기록 실패:', error);
+      console.error('Click 기록 실패:', JSON.stringify(error, null, 2));
       return null;
     }
 

@@ -145,12 +145,31 @@ export default function WritePage() {
         alert('글 저장 실패: ' + error.message);
         setIsSubmitting(false);
       } else if (data && data.length > 0) {
-        // 작성한 글로 바로 이동
+        // 작성자 정보를 localStorage에 저장 (수정/삭제 권한용)
+        const postId = data[0].id;
+        const authorKey = `post_author_${postId}`;
+        const writerKey = `post_writer_${formData.nickname}`;
+        
+        localStorage.setItem(authorKey, 'temp_author'); // 임시 작성자 표시
+        localStorage.setItem(writerKey, 'true'); // 닉네임별 작성자 표시
+        
+        console.log('✅ 글 작성 완료:', data[0]);
+        console.log('📝 작성자 정보 저장됨:', { authorKey, writerKey });
+        
         alert('글이 성공적으로 작성되었습니다!');
         router.push(`/post/${data[0].id}`);
       } else {
         alert('글이 작성되었습니다!');
-        window.location.href = '/';
+        console.log('📝 글 작성 완료, 메인으로 이동');
+        // 강제 새로고침으로 확실하게 새 글이 보이도록 함
+        setTimeout(() => {
+          // 먼저 메인 페이지로 이동
+          window.location.href = '/';
+          // 그리고 페이지 로드 후 강제 새로고침
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }, 1500);
       }
     } catch (error) {
       console.error('글 작성 중 오류 발생:', error);
@@ -355,7 +374,10 @@ export default function WritePage() {
             <div className="flex justify-end gap-2 mt-6">
               <button
                 type="button"
-                onClick={() => window.history.back()}
+                onClick={() => {
+                  console.log('📝 글 작성 취소, 메인으로 이동');
+                  window.location.href = '/';
+                }}
                 className="px-5 py-2 border border-gray-300 rounded-md text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors"
               >
                 취소

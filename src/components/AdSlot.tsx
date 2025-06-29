@@ -71,10 +71,9 @@ export default function AdSlot({ position, className = '', style, ad }: AdSlotPr
 
   // 광고 노출 기록
   useEffect(() => {
-    // id가 uuid(36자, 하이픈 포함)일 때만 기록
-    if (ad?.id && typeof ad.id === 'string' && ad.id.length === 36 && ad.id.includes('-') && !impressionRecorded) {
+    if (ad?.id && !impressionRecorded) {
       const pageUrl = window.location.href;
-      console.log('광고 노출 기록:', ad.id, pageUrl);
+      console.log('광고 노출 기록 시도:', ad.id, pageUrl);
       recordImpression(ad.id, pageUrl);
       setImpressionRecorded(true);
     }
@@ -83,7 +82,7 @@ export default function AdSlot({ position, className = '', style, ad }: AdSlotPr
   // 광고 클릭 핸들러
   const handleAdClick = async () => {
     if (ad?.id) {
-      console.log('광고 클릭 기록:', ad.id);
+      console.log('광고 클릭 기록 시도:', ad.id);
       await recordClick(ad.id);
     }
   };

@@ -20,13 +20,99 @@ export default function HomePage() {
   const postsPerPage = 20;
   const [ad, setAd] = useState(null);
 
+  // localStorage에서 힘내 수 가져오기 함수
+  const getCheerCount = (postId) => {
+    try {
+      const cheersKey = `post_cheers_${postId}`;
+      const savedCheers = parseInt(localStorage.getItem(cheersKey) || '0');
+      return savedCheers;
+    } catch (error) {
+      console.error('힘내 수 로드 실패:', error);
+      return 0;
+    }
+  };
+
+  // 힘내 버튼 클릭 여부 확인 함수
+  const hasUserCheered = (postId) => {
+    try {
+      const clickedKey = `post_cheered_${postId}`;
+      return localStorage.getItem(clickedKey) === 'true';
+    } catch (error) {
+      console.error('힘내 클릭 여부 확인 실패:', error);
+      return false;
+    }
+  };
+
   // 게시글 데이터 가져오기
   useEffect(() => {
     fetchPosts();
+    
+    // 페이지가 다시 보여질 때 게시글 새로고침
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('페이지가 다시 보여짐, 게시글 새로고침');
+        fetchPosts();
+      }
+    };
+    
+    // 페이지 포커스 이벤트
+    const handleFocus = () => {
+      console.log('페이지 포커스 됨, 게시글 새로고침');
+      fetchPosts();
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    // URL의 refresh 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('refresh')) {
+      console.log('🔄 새로고침 파라미터 감지, 게시글 다시 로드');
+      fetchPosts();
+      // URL에서 refresh 파라미터 제거
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    
+    // 주기적으로 게시글 새로고침 (30초마다)
+    const interval = setInterval(() => {
+      if (!document.hidden) { // 페이지가 보이는 상태일 때만
+        console.log('⏰ 주기적 게시글 새로고침');
+        fetchPosts();
+      }
+    }, 30000);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, []);
 
   const fetchPosts = async () => {
     try {
+      console.log('📝 게시글 목록 가져오기 시작');
+      
+      // localStorage 정리 (손상된 데이터 제거)
+      try {
+        // 댓글 관련 localStorage 정리
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith('comments_') || key.startsWith('post_')) {
+            try {
+              const data = localStorage.getItem(key);
+              if (data) {
+                JSON.parse(data); // 파싱 테스트
+              }
+            } catch (e) {
+              console.log(`손상된 localStorage 키 제거: ${key}`);
+              localStorage.removeItem(key);
+            }
+          }
+        });
+      } catch (e) {
+        console.log('localStorage 정리 중 오류:', e);
+      }
+      
       const { data, error } = await supabase
         .from('posts')
         .select('*')
@@ -34,11 +120,22 @@ export default function HomePage() {
       
       if (error) {
         console.error('게시글 가져오기 실패:', error);
+        console.log('샘플 데이터 사용');
+        setPosts(samplePosts);
       } else {
+        console.log(`✅ 게시글 ${data?.length || 0}개 로드됨`);
+        if (data && data.length > 0) {
+          console.log('📋 최신 게시글 3개:');
+          data.slice(0, 3).forEach((post, idx) => {
+            console.log(`  ${idx + 1}. [${post.created_at}] ${post.title} (ID: ${post.id})`);
+          });
+        }
         setPosts(data || []);
       }
     } catch (error) {
       console.error('게시글 가져오기 중 오류:', error);
+      console.log('오류로 인한 샘플 데이터 사용');
+      setPosts(samplePosts);
     } finally {
       setLoading(false);
     }
@@ -358,7 +455,17 @@ export default function HomePage() {
             </div>
 
             {/* 글쓰기 버튼 */}
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between items-center mb-4">
+              <button
+                onClick={() => {
+                  console.log('🔄 수동 새로고침 버튼 클릭');
+                  setLoading(true);
+                  fetchPosts();
+                }}
+                className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+              >
+                🔄 새로고침
+              </button>
               <Link
                 href="/board/write"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -423,7 +530,7 @@ export default function HomePage() {
                     <div className="w-20 text-center text-sm text-gray-500">{post.created_at.slice(5, 10)}</div>
                     <div className="w-16 text-center text-sm text-gray-500">{post.view_count}</div>
                     <div className="w-16 text-center text-sm text-orange-600 font-medium">
-                      {post.encourage_count || 0}
+                      {getCheerCount(post.id)}
                     </div>
                   </div>
                   <div style={{
@@ -470,7 +577,7 @@ export default function HomePage() {
                     <div className="w-20 text-center text-sm text-gray-500">{post.created_at.slice(5, 10)}</div>
                     <div className="w-16 text-center text-sm text-gray-500">{post.view_count}</div>
                     <div className="w-16 text-center text-sm text-orange-600 font-medium">
-                      {post.encourage_count || 0}
+                      {getCheerCount(post.id)}
                     </div>
                   </div>
                   <div style={{

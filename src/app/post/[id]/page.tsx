@@ -46,6 +46,15 @@ export default function PostDetailPage() {
   const [deleteForm, setDeleteForm] = useState({ password: '' }); // 삭제 폼
   const [showDeleteModal, setShowDeleteModal] = useState(null); // 삭제 모달 표시 댓글 ID
 
+  // 추천/힘내 버튼 관련 state
+  const [isLiking, setIsLiking] = useState(false);
+  const [isCheering, setIsCheering] = useState(false);
+
+  // 게시글 수정/삭제 관련 state
+  const [showPostDeleteModal, setShowPostDeleteModal] = useState(false);
+  const [postDeleteForm, setPostDeleteForm] = useState({ password: '' });
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // 샘플 데이터
   const samplePost = {
     id: postId,
@@ -61,7 +70,9 @@ export default function PostDetailPage() {
     created_at: '2024-01-15',
     view_count: 156,
     comment_count: 8,
-    category: '개인회생'
+    category: '개인회생',
+    likes: 5,
+    cheers: 12
   };
 
   const popularPosts = [
@@ -205,6 +216,27 @@ export default function PostDetailPage() {
     fetchRelatedPosts();
   }, [postId]);
 
+  // 추천/힘내요 수 로드
+  const loadLikesAndCheers = () => {
+    try {
+      const likesKey = `post_likes_${postId}`;
+      const cheersKey = `post_cheers_${postId}`;
+      
+      const savedLikes = parseInt(localStorage.getItem(likesKey) || '0');
+      const savedCheers = parseInt(localStorage.getItem(cheersKey) || '0');
+      
+      setPost(prev => prev ? ({
+        ...prev,
+        likes: (prev.likes || 0) + savedLikes,
+        cheers: (prev.cheers || 0) + savedCheers
+      }) : null);
+      
+      console.log(`💾 저장된 데이터 로드: 추천 ${savedLikes}개, 힘내요 ${savedCheers}개`);
+    } catch (error) {
+      console.error('추천/힘내요 데이터 로드 실패:', error);
+    }
+  };
+
   // 실제 게시글 데이터 가져오기
   const fetchPost = async () => {
     try {
@@ -230,6 +262,11 @@ export default function PostDetailPage() {
       console.error('게시글 가져오기 중 오류:', error);
       setPost(samplePost);
     }
+    
+    // 추천/힘내요 데이터 로드
+    setTimeout(() => {
+      loadLikesAndCheers();
+    }, 100);
     
     // 댓글 로딩
     loadCommentsFromStorage();
@@ -296,10 +333,20 @@ export default function PostDetailPage() {
         const storageKey = `comments_${postId}`;
         const savedComments = localStorage.getItem(storageKey);
         if (savedComments) {
-          const parsedComments = JSON.parse(savedComments);
-          console.log('localStorage에서 로딩된 댓글:', parsedComments);
-          setComments(parsedComments);
-          return parsedComments;
+          try {
+            const parsedComments = JSON.parse(savedComments);
+            console.log('localStorage에서 로딩된 댓글:', parsedComments);
+            setComments(parsedComments);
+            return parsedComments;
+          } catch (e) {
+            console.error('localStorage 댓글 데이터 손상, 제거:', e);
+            localStorage.removeItem(storageKey);
+            // 손상된 데이터 제거 후 샘플 데이터 사용
+            console.log('샘플 댓글 사용');
+            setComments(sampleComments);
+            localStorage.setItem(storageKey, JSON.stringify(sampleComments));
+            return sampleComments;
+          }
         } else {
           // 저장된 댓글이 없으면 샘플 댓글 사용
           console.log('샘플 댓글 사용');
@@ -320,6 +367,7 @@ export default function PostDetailPage() {
   // 관련 게시글 가져오기
   const fetchRelatedPosts = async () => {
     try {
+      console.log('관련 게시글 가져오기 시작');
       const { data, error } = await supabase
         .from('posts')
         .select('*')
@@ -327,20 +375,39 @@ export default function PostDetailPage() {
         .order('created_at', { ascending: false })
         .limit(10);
       
-      if (!error && data) {
+      console.log('관련 게시글 결과:', { data, error });
+      
+      if (!error && data && data.length > 0) {
+        console.log(`관련 게시글 ${data.length}개 로드됨`);
         setRelatedPosts(data);
       } else {
-        // 샘플 게시글 데이터 사용
-        setRelatedPosts([
-          { id: 101, title: '개인회생 vs 개인파산 차이점이 궁금해요', nickname: '질문자', category: '개인회생', created_at: '2024-01-20', view_count: 234, comment_count: 12, isNotice: false },
-          { id: 102, title: '신용회복위원회 워크아웃 신청 후기', nickname: '경험담', category: '워크아웃', created_at: '2024-01-19', view_count: 189, comment_count: 8, isNotice: false },
-          { id: 103, title: '법무사 비용 얼마나 드나요?', nickname: '준비중', category: '법무사상담', created_at: '2024-01-19', view_count: 167, comment_count: 15, isNotice: false },
-          { id: 104, title: '회생계획 인가 후 주의사항들', nickname: '조언자', category: '회생절차', created_at: '2024-01-18', view_count: 145, comment_count: 6, isNotice: false },
-          { id: 105, title: '면책 결정까지 기간은 보통 얼마나?', nickname: '궁금이', category: '개인파산', created_at: '2024-01-18', view_count: 123, comment_count: 9, isNotice: false },
-          { id: 106, title: '신용점수 회복 방법 공유합니다', nickname: '회복중', category: '신용점수', created_at: '2024-01-17', view_count: 201, comment_count: 18, isNotice: false },
-          { id: 107, title: '대출 정리하고 개인회생 신청했어요', nickname: '새출발', category: '대출관련', created_at: '2024-01-17', view_count: 178, comment_count: 11, isNotice: false },
-          { id: 108, title: '변호사 vs 법무사 어떤 차이가?', nickname: '고민남', category: '변호사상담', created_at: '2024-01-16', view_count: 156, comment_count: 7, isNotice: false }
-        ]);
+        console.log('데이터베이스 실패 또는 데이터 없음, 샘플 데이터 사용');
+        // 실제 데이터베이스에서 모든 게시글을 다시 시도
+        const { data: allPosts, error: allError } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(15);
+          
+        if (!allError && allPosts && allPosts.length > 0) {
+          // 현재 게시글 제외한 최신 게시글들
+          const filteredPosts = allPosts.filter(post => post.id !== postId).slice(0, 10);
+          console.log(`전체 게시글에서 ${filteredPosts.length}개 필터링됨`);
+          setRelatedPosts(filteredPosts);
+        } else {
+          // 최종적으로 샘플 데이터 사용
+          console.log('최종 샘플 데이터 사용');
+          setRelatedPosts([
+            { id: 101, title: '개인회생 vs 개인파산 차이점이 궁금해요', nickname: '질문자', category: '개인회생', created_at: '2024-01-20', view_count: 234, comment_count: 12, isNotice: false },
+            { id: 102, title: '신용회복위원회 워크아웃 신청 후기', nickname: '경험담', category: '워크아웃', created_at: '2024-01-19', view_count: 189, comment_count: 8, isNotice: false },
+            { id: 103, title: '법무사 비용 얼마나 드나요?', nickname: '준비중', category: '법무사상담', created_at: '2024-01-19', view_count: 167, comment_count: 15, isNotice: false },
+            { id: 104, title: '회생계획 인가 후 주의사항들', nickname: '조언자', category: '회생절차', created_at: '2024-01-18', view_count: 145, comment_count: 6, isNotice: false },
+            { id: 105, title: '면책 결정까지 기간은 보통 얼마나?', nickname: '궁금이', category: '개인파산', created_at: '2024-01-18', view_count: 123, comment_count: 9, isNotice: false },
+            { id: 106, title: '신용점수 회복 방법 공유합니다', nickname: '회복중', category: '신용점수', created_at: '2024-01-17', view_count: 201, comment_count: 18, isNotice: false },
+            { id: 107, title: '대출 정리하고 개인회생 신청했어요', nickname: '새출발', category: '대출관련', created_at: '2024-01-17', view_count: 178, comment_count: 11, isNotice: false },
+            { id: 108, title: '변호사 vs 법무사 어떤 차이가?', nickname: '고민남', category: '변호사상담', created_at: '2024-01-16', view_count: 156, comment_count: 7, isNotice: false }
+          ]);
+        }
       }
     } catch (error) {
       console.error('관련 게시글 가져오기 실패:', error);
@@ -491,9 +558,23 @@ export default function PostDetailPage() {
         // localStorage에 저장
         try {
           const storageKey = `comments_${postId}`;
-          localStorage.setItem(storageKey, JSON.stringify(immediateUpdatedComments));
+          const jsonString = JSON.stringify(immediateUpdatedComments);
+          localStorage.setItem(storageKey, jsonString);
+          console.log('댓글 localStorage 저장 성공');
         } catch (storageError) {
           console.error('댓글 localStorage 저장 실패:', storageError);
+          // localStorage 용량 초과 등의 문제 시 기존 데이터 정리
+          try {
+            const keys = Object.keys(localStorage);
+            keys.filter(key => key.startsWith('comments_')).forEach(key => {
+              if (key !== `comments_${postId}`) {
+                localStorage.removeItem(key);
+              }
+            });
+            localStorage.setItem(`comments_${postId}`, JSON.stringify(immediateUpdatedComments));
+          } catch (e) {
+            console.error('localStorage 정리 후에도 저장 실패:', e);
+          }
         }
         
         // 게시글 댓글 수 업데이트
@@ -828,6 +909,298 @@ export default function PostDetailPage() {
     }
   };
 
+  // 추천 버튼 클릭 여부 확인
+  const hasUserLiked = () => {
+    try {
+      const clickedKey = `post_liked_${postId}`;
+      return localStorage.getItem(clickedKey) === 'true';
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // 추천 수 가져오기
+  const getLikeCount = () => {
+    try {
+      const likesKey = `post_likes_${postId}`;
+      return parseInt(localStorage.getItem(likesKey) || '0');
+    } catch (error) {
+      return 0;
+    }
+  };
+
+  // 추천(좋아요) 버튼 클릭 핸들러
+  const handleLikeClick = async () => {
+    // 이미 클릭했는지 확인
+    if (hasUserLiked()) {
+      alert('이미 추천을 누르셨습니다.');
+      return;
+    }
+
+    setIsLiking(true);
+    
+    try {
+      // localStorage에서 현재 클릭 수 가져오기
+      const storageKey = `post_likes_${postId}`;
+      const clickedKey = `post_liked_${postId}`;
+      const currentClicks = parseInt(localStorage.getItem(storageKey) || '0');
+      const newClicks = currentClicks + 1;
+      
+      // localStorage에 저장
+      localStorage.setItem(storageKey, newClicks.toString());
+      localStorage.setItem(clickedKey, 'true'); // 클릭 여부 저장
+      
+      // 즉시 UI 업데이트
+      setPost(prev => prev ? ({
+        ...prev,
+        likes: newClicks
+      }) : null);
+      
+      console.log(`👍 추천 +1 (총 클릭: ${newClicks}번)`);
+      
+    } catch (error) {
+      console.error('추천 처리 실패:', error);
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  // 힘내 버튼 클릭 여부 확인
+  const hasUserCheered = () => {
+    try {
+      const clickedKey = `post_cheered_${postId}`;
+      return localStorage.getItem(clickedKey) === 'true';
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // 힘내 수 가져오기
+  const getCheerCount = () => {
+    try {
+      const cheersKey = `post_cheers_${postId}`;
+      return parseInt(localStorage.getItem(cheersKey) || '0');
+    } catch (error) {
+      return 0;
+    }
+  };
+
+  // 힘내요 버튼 클릭 핸들러
+  const handleCheerClick = async () => {
+    // 이미 클릭했는지 확인
+    if (hasUserCheered()) {
+      alert('이미 힘내요를 누르셨습니다.');
+      return;
+    }
+
+    setIsCheering(true);
+    
+    try {
+      // localStorage에서 현재 클릭 수 가져오기
+      const storageKey = `post_cheers_${postId}`;
+      const clickedKey = `post_cheered_${postId}`;
+      const currentClicks = parseInt(localStorage.getItem(storageKey) || '0');
+      const newClicks = currentClicks + 1;
+      
+      // localStorage에 저장
+      localStorage.setItem(storageKey, newClicks.toString());
+      localStorage.setItem(clickedKey, 'true'); // 클릭 여부 저장
+      
+      // 즉시 UI 업데이트
+      setPost(prev => prev ? ({
+        ...prev,
+        cheers: newClicks
+      }) : null);
+      
+      console.log(`💪 힘내요 +1 (총 클릭: ${newClicks}번)`);
+      
+    } catch (error) {
+      console.error('힘내요 처리 실패:', error);
+    } finally {
+      setIsCheering(false);
+    }
+  };
+
+  // 작성자 권한 확인
+  const canEditPost = () => {
+    // 개발용: Ctrl+Shift+E로 작성자 권한 토글
+    try {
+      const authorKey = `post_author_${postId}`;
+      const savedAuthor = localStorage.getItem(authorKey);
+      
+      // 임시로 키보드 단축키로 작성자 권한 설정 가능
+      if (savedAuthor === 'temp_author') {
+        return true;
+      }
+      
+      // 실제 작성자 확인 (현재는 localStorage 기반)
+      const currentUser = localStorage.getItem('current_user');
+      
+      if (!savedAuthor && post) {
+        // 게시글 작성 시 저장된 정보가 있는지 확인
+        const writerKey = `post_writer_${post.nickname}`;
+        return localStorage.getItem(writerKey) === 'true';
+      }
+      
+      return savedAuthor === currentUser;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // 작성자 권한 설정 (개발용)
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Ctrl + Shift + E 를 눌러 작성자 권한 토글
+      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        const authorKey = `post_author_${postId}`;
+        const currentAuthor = localStorage.getItem(authorKey);
+        
+        if (currentAuthor === 'temp_author') {
+          localStorage.removeItem(authorKey);
+          console.log('✏️ 작성자 권한 해제됨');
+          alert('작성자 권한이 해제되었습니다.');
+        } else {
+          localStorage.setItem(authorKey, 'temp_author');
+          console.log('✏️ 작성자 권한 설정됨');
+          alert('작성자 권한이 설정되었습니다.');
+        }
+        // 페이지 새로고침으로 버튼 상태 업데이트
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [postId]);
+
+  // 관리자 권한 확인
+  const isAdmin = () => {
+    try {
+      const adminKey = 'user_role';
+      return localStorage.getItem(adminKey) === 'admin';
+    } catch (error) {
+      return false;
+    }
+  };
+
+  // 관리자 권한 설정 (개발용 - 키보드 단축키)
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Ctrl + Shift + A 를 눌러 관리자 권한 토글
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        const currentRole = localStorage.getItem('user_role');
+        if (currentRole === 'admin') {
+          localStorage.removeItem('user_role');
+          console.log('👤 관리자 권한 해제됨');
+          alert('관리자 권한이 해제되었습니다.');
+        } else {
+          localStorage.setItem('user_role', 'admin');
+          console.log('🛡️ 관리자 권한 설정됨');
+          alert('관리자 권한이 설정되었습니다.');
+        }
+        // 페이지 새로고침으로 버튼 상태 업데이트
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  // 게시글 수정 핸들러
+  const handleEditPost = () => {
+    // 수정 페이지로 이동
+    window.location.href = `/board/edit/${postId}`;
+  };
+
+  // 게시글 삭제 핸들러 (작성자)
+  const handleDeletePost = () => {
+    setShowPostDeleteModal(true);
+  };
+
+  // 관리자 삭제 핸들러
+  const handleAdminDelete = () => {
+    if (confirm('관리자 권한으로 이 게시글을 삭제하시겠습니까?')) {
+      handlePostDelete(true);
+    }
+  };
+
+  // 게시글 삭제 실행
+  const handlePostDelete = async (isAdminDelete = false) => {
+    if (!isAdminDelete && !postDeleteForm.password.trim()) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      // 관련 댓글들 먼저 삭제
+      const { error: commentsError } = await supabase
+        .from('comments')
+        .delete()
+        .eq('post_id', postId);
+
+      if (commentsError) {
+        console.warn('댓글 삭제 실패:', commentsError);
+      }
+
+      // 게시글 삭제 (관리자는 비밀번호 확인 없이 삭제)
+      let deleteQuery = supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+
+      if (!isAdminDelete) {
+        deleteQuery = deleteQuery.eq('password', postDeleteForm.password);
+      }
+
+      const { error, data } = await deleteQuery.select();
+
+      if (!error && data && data.length > 0) {
+        // localStorage에서 관련 데이터 모두 제거
+        const authorKey = `post_author_${postId}`;
+        const likesKey = `post_likes_${postId}`;
+        const cheersKey = `post_cheers_${postId}`;
+        const likedKey = `post_liked_${postId}`;
+        const cheeredKey = `post_cheered_${postId}`;
+        const commentsKey = `comments_${postId}`;
+        
+        localStorage.removeItem(authorKey);
+        localStorage.removeItem(likesKey);
+        localStorage.removeItem(cheersKey);
+        localStorage.removeItem(likedKey);
+        localStorage.removeItem(cheeredKey);
+        localStorage.removeItem(commentsKey);
+        
+        alert('게시글이 삭제되었습니다.');
+        window.location.href = '/';
+      } else if (!error && (!data || data.length === 0)) {
+        alert('비밀번호가 일치하지 않습니다.');
+      } else {
+        // 데이터베이스 삭제 실패 시 localStorage에서 제거
+        const postKey = `post_${postId}`;
+        localStorage.removeItem(postKey);
+        
+        alert('게시글이 삭제되었습니다.');
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('게시글 삭제 실패:', error);
+      alert('게시글 삭제에 실패했습니다.');
+    } finally {
+      setIsDeleting(false);
+      setShowPostDeleteModal(false);
+    }
+  };
+
+  // 게시글 삭제 모달 닫기
+  const closePostDeleteModal = () => {
+    setShowPostDeleteModal(false);
+    setPostDeleteForm({ password: '' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -841,7 +1214,17 @@ export default function PostDetailPage() {
       {/* 헤더 */}
       <header className="bg-gray-800 shadow-lg h-20">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-          <Link href="/" className="text-white flex items-center gap-3">
+          <Link 
+            href="/" 
+            className="text-white flex items-center gap-3"
+            onClick={() => {
+              console.log('🏠 힘내톡톡 로고 클릭 - 메인 페이지로 이동');
+              // 메인 페이지로 이동 시 카테고리와 페이지 초기화
+              setTimeout(() => {
+                window.location.href = '/';
+              }, 100);
+            }}
+          >
             <div className="text-2xl">🌟</div>
             <div>
               <div className="text-lg font-bold">힘내톡톡</div>
@@ -913,7 +1296,40 @@ export default function PostDetailPage() {
                       <span>댓글 {comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0)}</span>
                     </div>
                   </div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-3">{post.title}</h1>
+                  <div className="flex items-center justify-between mb-3">
+                    <h1 className="text-2xl font-bold text-gray-900">{post.title}</h1>
+                    
+                    {/* 수정/삭제 버튼 영역 */}
+                    <div className="flex items-center space-x-2">
+                      {/* 작성자 본인 버튼 */}
+                      {canEditPost() && (
+                        <>
+                          <button
+                            onClick={handleEditPost}
+                            className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                          >
+                            ✏️ 수정
+                          </button>
+                          <button
+                            onClick={handleDeletePost}
+                            className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                          >
+                            🗑️ 삭제
+                          </button>
+                        </>
+                      )}
+                      
+                      {/* 관리자 삭제 버튼 */}
+                      {isAdmin() && !canEditPost() && (
+                        <button
+                          onClick={handleAdminDelete}
+                          className="px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          🛡️ 관리자 삭제
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <span className="font-medium">{post.nickname}</span>
                     <span className="mx-2">•</span>
@@ -929,20 +1345,42 @@ export default function PostDetailPage() {
                 </div>
 
                 {/* 게시글 하단 */}
-                <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                      <span>👍</span>
-                      <span>도움됨</span>
-                    </button>
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                      <span>💪</span>
-                      <span>힘내세요</span>
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  {/* 힘내세요 버튼 - 중앙 정렬 */}
+                  <div className="flex justify-center mb-4">
+                    <button 
+                      onClick={handleCheerClick}
+                      disabled={isCheering || hasUserCheered()}
+                      className={`relative overflow-hidden group flex items-center space-x-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 transform ${
+                        hasUserCheered() 
+                          ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow-md cursor-not-allowed' 
+                          : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:scale-105 hover:shadow-lg active:scale-95'
+                      } ${isCheering ? 'animate-pulse' : ''}`}
+                    >
+                      {/* 배경 애니메이션 효과 */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      
+                      {/* 아이콘과 텍스트 */}
+                      <span className="relative z-10 text-lg">
+                        {hasUserCheered() ? '🌟' : '💪'}
+                      </span>
+                      <span className="relative z-10 text-sm">
+                        {hasUserCheered() ? `응원완료 ${getCheerCount()}` : `힘내세요 ${getCheerCount()}`}
+                      </span>
+                      
+                      {/* 버튼 활성화 시 반짝이 효과 */}
+                      {hasUserCheered() && (
+                        <div className="absolute inset-0 animate-ping bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full opacity-15"></div>
+                      )}
                     </button>
                   </div>
-                  <button className="text-gray-500 hover:text-gray-700">
-                    <span>공유</span>
-                  </button>
+                  
+                  {/* 공유 버튼 - 우측 하단 */}
+                  <div className="flex justify-end">
+                    <button className="text-gray-500 hover:text-gray-700 text-sm transition-colors">
+                      <span>📤 공유</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -951,9 +1389,9 @@ export default function PostDetailPage() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  댓글 {comments.reduce((total, comment) => total + 1 + (comment.replies?.length || 0), 0)}개
+                  댓글 {comments.length + comments.reduce((total, comment) => total + (comment.replies?.length || 0), 0)}개
                   <span className="text-sm text-gray-500 ml-2">
-                    (총 {comments.length}개 원댓글)
+                    (원댓글 {comments.length}개 + 답글 {comments.reduce((total, comment) => total + (comment.replies?.length || 0), 0)}개)
                   </span>
                 </h3>
                 
@@ -1009,7 +1447,7 @@ export default function PostDetailPage() {
                   </div>
                 </form>
 
-                {/* 삭제 확인 모달 */}
+                {/* 댓글 삭제 확인 모달 */}
                 {showDeleteModal && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-96">
@@ -1038,6 +1476,44 @@ export default function PostDetailPage() {
                             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
                           >
                             삭제
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+
+                {/* 게시글 삭제 확인 모달 */}
+                {showPostDeleteModal && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-96">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">게시글 삭제</h3>
+                      <p className="text-gray-600 mb-4">게시글을 삭제하시겠습니까? 삭제된 게시글은 복구할 수 없습니다.</p>
+                      <form onSubmit={(e) => { e.preventDefault(); handlePostDelete(); }}>
+                        <input
+                          type="password"
+                          placeholder="게시글 작성 시 입력한 비밀번호"
+                          value={postDeleteForm.password}
+                          onChange={(e) => setPostDeleteForm(prev => ({ ...prev, password: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4"
+                          required
+                          autoFocus
+                        />
+                        <div className="flex justify-end space-x-3">
+                          <button
+                            type="button"
+                            onClick={closePostDeleteModal}
+                            className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                            disabled={isDeleting}
+                          >
+                            취소
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? '삭제 중...' : '삭제'}
                           </button>
                         </div>
                       </form>
@@ -1452,6 +1928,15 @@ export default function PostDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* 개발용 단축키 안내 (개발 환경에서만 표시) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 right-4 bg-gray-800 text-white text-xs p-3 rounded-lg shadow-lg max-w-xs z-50">
+          <div className="font-semibold mb-1">개발용 단축키</div>
+          <div>Ctrl+Shift+A: 관리자 권한</div>
+          <div>Ctrl+Shift+E: 작성자 권한</div>
+        </div>
+      )}
     </div>
   );
 } 
